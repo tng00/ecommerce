@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %}Мои заказы{% endblock %}
+
+{% block content %}
+
+
+
+<body>
+    <div class="container mt-5">
+        <h1>Детали заказа</h1>
+
+        <h2>Заказ #{{ order[0].id }}</h2>
+        <p><strong>Дата заказа:</strong> {{ order[0].order_date }}</p>
+        <p><strong>Адрес доставки:</strong> {{ order[0].address }}</p>
+        <p><strong>Общая сумма:</strong> {{ order[0].total }} ₽</p>
+        <p><strong>Статус:</strong> {{ order[0].status }}</p>
+
+        <h3>Элементы заказа</h3>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Артикул</th>
+                    <th>Количество</th>
+                    <th>Цена</th>
+                    <th>Итого</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in order_items %}
+                    <tr>
+                        <td>
+                            <a href="/product/{{item.product_id}}">{{ item.product_id }}</a>
+                        </td>
+                        <td>{{ item.quantity }}</td>
+                        <td>{{ item.price }} ₽</td>
+                        <td>{{ item.quantity * item.price }} ₽</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <a href="/order" class="btn btn-primary">Вернуться к заказам</a>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+
+{% endblock %}

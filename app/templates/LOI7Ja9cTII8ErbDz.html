@@ -1,0 +1,242 @@
+<html><head><base href="." /><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><title>Elegant Product Page</title><style>
+:root {
+  --primary: #2c3e50;
+  --accent: #e74c3c;
+  --light: #ecf0f1;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  line-height: 1.6;
+  color: var(--primary);
+  background: var(--light);
+}
+
+nav {
+  background: var(--primary);
+  padding: 1rem;
+  position: fixed;
+  width: 100%;
+  top: 0;
+  z-index: 100;
+}
+
+.nav-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.logo {
+  color: white;
+  font-size: 1.5rem;
+  font-weight: bold;
+}
+
+.nav-links a {
+  color: white;
+  text-decoration: none;
+  margin-left: 2rem;
+  transition: color 0.3s;
+}
+
+.nav-links a:hover {
+  color: var(--accent);
+}
+
+.hero {
+  margin-top: 60px;
+  height: 60vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(45deg, #2c3e50, #3498db);
+  color: white;
+  text-align: center;
+}
+
+.product-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.product-card {
+  background: white;
+  border-radius: 10px;
+  overflow: hidden;
+  transition: transform 0.3s, box-shadow 0.3s;
+  cursor: pointer;
+}
+
+.product-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+}
+
+.product-image {
+  width: 100%;
+  height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f8f9fa;
+}
+
+.product-info {
+  padding: 1.5rem;
+}
+
+.product-title {
+  font-size: 1.2rem;
+  margin-bottom: 0.5rem;
+}
+
+.product-price {
+  color: var(--accent);
+  font-weight: bold;
+  font-size: 1.3rem;
+  margin-bottom: 1rem;
+}
+
+.btn {
+  background: var(--accent);
+  color: white;
+  border: none;
+  padding: 0.8rem 1.5rem;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.btn:hover {
+  background: #c0392b;
+}
+
+.product-description {
+  color: #666;
+  margin-bottom: 1rem;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.product-card {
+  animation: fadeIn 0.6s ease-out forwards;
+}
+
+</style></head><body>
+<nav>
+  <div class="nav-content">
+    <div class="logo">ShopMaster</div>
+    <div class="nav-links">
+      <a href="/">Home</a>
+      <a href="/product/">Products</a>
+      <a href="https://example.com/cart">Cart</a>
+      <a href="https://example.com/account">Account</a>
+    </div>
+  </div>
+</nav>
+
+<section class="hero">
+  <div>
+    <h1>Discover Amazing Products</h1>
+    <p>Quality items at unbeatable prices</p>
+  </div>
+</section>
+
+<div class="product-grid">
+  <div class="product-card">
+    <div class="product-image">
+      <svg width="100" height="100" viewBox="0 0 100 100">
+        <rect x="20" y="20" width="60" height="60" fill="#3498db"/>
+        <circle cx="50" cy="50" r="25" fill="#e74c3c"/>
+      </svg>
+    </div>
+    <div class="product-info">
+      <h2 class="product-title">Premium Widget</h2>
+      <p class="product-description">High-quality widget perfect for all your needs</p>
+      <div class="product-price">$99.99</div>
+      <button class="btn">Add to Cart</button>
+    </div>
+  </div>
+
+  <div class="product-card">
+    <div class="product-image">
+      <svg width="100" height="100" viewBox="0 0 100 100">
+        <polygon points="50,20 80,80 20,80" fill="#2ecc71"/>
+        <circle cx="50" cy="50" r="15" fill="#f1c40f"/>
+      </svg>
+    </div>
+    <div class="product-info">
+      <h2 class="product-title">Super Gadget</h2>
+      <p class="product-description">The latest in technology innovation</p>
+      <div class="product-price">$149.99</div>
+      <button class="btn">Add to Cart</button>
+    </div>
+  </div>
+
+  <div class="product-card">
+    <div class="product-image">
+      <svg width="100" height="100" viewBox="0 0 100 100">
+        <circle cx="50" cy="50" r="40" fill="#9b59b6"/>
+        <rect x="35" y="35" width="30" height="30" fill="#f39c12"/>
+      </svg>
+    </div>
+    <div class="product-info">
+      <h2 class="product-title">Awesome Tool</h2>
+      <p class="product-description">Professional grade equipment</p>
+      <div class="product-price">$199.99</div>
+      <button class="btn">Add to Cart</button>
+    </div>
+  </div>
+</div>
+
+<script>
+document.querySelectorAll('.btn').forEach(button => {
+  button.addEventListener('click', () => {
+    const card = button.closest('.product-card');
+    const productName = card.querySelector('.product-title').textContent;
+    const price = card.querySelector('.product-price').textContent;
+    
+    // Animation for button click
+    button.style.transform = 'scale(0.95)';
+    setTimeout(() => {
+      button.style.transform = 'scale(1)';
+    }, 100);
+
+    // Show added to cart message
+    alert(`Added ${productName} (${price}) to cart!`);
+  });
+});
+
+// Intersection Observer for smooth loading animation
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      entry.target.style.opacity = 1;
+      entry.target.style.transform = 'translateY(0)';
+    }
+  });
+}, {
+  threshold: 0.1
+});
+
+document.querySelectorAll('.product-card').forEach(card => {
+  observer.observe(card);
+});
+</script>
+</body></html>

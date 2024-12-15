@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+
+{% block title %}Мои отзывы{% endblock %}
+
+{% block content %}
+
+<style>
+    #reviewForm {
+        display: none;
+        /* Скрываем форму по умолчанию */
+    }
+</style>
+
+<h3>Мои отзывы</h3>
+
+
+<div class="container mt-5">
+    <h3>Создать новый отзыв</h3>
+    <button id="toggleFormBtn" class="btn btn-secondary">Развернуть форму</button>
+    <form id="reviewForm">
+        <input type="hidden" id="reviewId" name="id">
+        <div class="form-group">
+            <label for="reviewName">Артикул</label>
+            <input type="text" class="form-control" id="reviewName" name="product_id" required>
+
+            <label for="reviewRating">Оценка</label>
+            <select class="form-control" id="reviewRating" name="rating" required>
+                <option value="" disabled selected>Выберите оценку</option>
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+                <option value="5">5</option>
+            </select>
+            <label for="reviewPrice">Комментарий</label>
+            <input type="text" class="form-control" id="reviewPrice" name="comment" required>
+        </div>
+        <div class="btn-group">
+            <button type="submit" class="btn btn-primary" id="submitBtn">Создать</button>
+        </div>
+    </form>
+</div>
+
+
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Номер отзыва</th>
+            <th>Артикул</th>
+            <th>Название товара</th>
+            {% if user.is_admin %}
+                <th>User ID</th>
+            {% endif %}
+            <th>Оценка</th>
+            <th>Комментарий</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for review in reviews %}
+        <tr>
+            <td>{{ review.id }}</td>
+            <td>{{ review.product_id }}</td>
+            <td><a href="/product/{{review.product_id}}">{{ review.product_name }}</a></td>
+            {% if user.is_admin %}
+                <td>{{ review.user_id }}</td>
+            {% endif %}
+            <td>{{ review.rating }} ⭐</td>
+            <td>{{ review.comment }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<script>
+    let currentreviewSlug = null;
+
+    document.getElementById('toggleFormBtn').addEventListener('click', function () {
+        const form = document.getElementById('reviewForm');
+        if (form.style.display === 'none') {
+            form.style.display = 'block'; // Показываем форму
+            this.textContent = 'Свернуть форму'; // Меняем текст кнопки
+        } else {
+            form.style.display = 'none'; // Скрываем форму
+            this.textContent = 'Развернуть форму'; // Меняем текст кнопки
+        }
+    });
+
+    document.getElementById('reviewForm').addEventListener('submit', async function (event) {
+        event.preventDefault(); // Предотвращаем стандартное поведение формы
+
+        const formData = new FormData(this); // Получаем данные формы
+        const data = Object.fromEntries(formData); // Преобразуем FormData в объект
+
+        try {
+            const response = await fetch('/review/create', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data) // Отправляем данные в формате JSON
+            });
+
+            if (response.ok) {
+                // const result = await response.json();
+                // alert('Категория успешно создана!');
+                location.reload();
+            } else {
+                const error = await response.json();
+                alert('Ошибка: ' + (error.detail || 'Неизвестная ошибка'));
+            }
+        } catch (error) {
+            alert('Ошибка при создании отзыва. Пожалуйста, попробуйте еще раз.');
+        }
+    });
+
+
+</script>
+
+
+
+
+{% endblock %}

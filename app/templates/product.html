@@ -1,0 +1,250 @@
+{% extends "base.html" %}
+
+{% block title %}Товары{% endblock %}
+
+{% block content %}
+
+<style>
+    #productForm {
+        display: none;
+        /* Скрываем форму по умолчанию */
+    }
+</style>
+
+<div class="container mt-5">
+    <h3>Создать новый товар</h3>
+    <button id="toggleFormBtn" class="btn btn-secondary">Развернуть форму</button>
+    <form id="productForm" enctype="multipart/form-data">
+        <div class="form-group">
+            <label for="productName">Название товара</label>
+            <input type="text" class="form-control" id="productName" name="name" required>
+
+            <label for="productDescription">Описание</label>
+            <input type="text" class="form-control" id="productDescription" name="description" required>
+
+            <label for="productPrice">Цена</label>
+            <input type="number" class="form-control" id="productPrice" name="price" required>
+
+            <label for="productImage">Фото</label>    
+            <input type="file" class="form-control" id="productImage" name="image_file" accept=".jpg, .jpeg, .png" required>
+
+            <label for="productStock">Остаток</label>
+            <input type="number" class="form-control" id="productStock" name="stock" required>
+
+            <div class="form-group">
+                <label for="productCategory">Категория</label>
+                <select class="form-control" id="productCategory" name="category" required>
+                    <option value="" disabled selected>-- Не выбран --</option>
+                    {% for category in categories %}
+                        {% if category.is_active %}
+                            <option value="{{ category.id }}">{{ category.name }}</option>
+                        {% endif %}
+                    {% endfor %}
+                </select>
+            </div>
+
+        </div>
+        <div class="btn-group">
+            <button type="submit" class="btn btn-primary" id="submitBtn">Создать</button>
+        </div>
+    </form>
+</div>
+
+
+<div id="editProductModal" style="display:none;">
+    <h3 id="editProductTitle">Редактировать товар ID {id}</h3>
+    <label for="newProductName">Название:</label>
+    <input type="text" id="newProductName" />
+    <label for="newProductDescription">Описание</label>
+    <input type="text" id="newProductDescription">
+    <label for="newProductPrice">Цена</label>
+    <input type="number" id="newProductPrice">
+    <label for="newProductImage">Фото</label>
+    <input type="file" id="newProductImage" accept=".jpg, .jpeg, .png">
+    <label for="newProductStock">Остаток</label>
+    <input type="number" id="newProductStock">
+    <!-- <label for="newProductCategory">Категория</label> -->
+    <div class="form-group">
+        <label for="productCategory">Категория</label>
+        <select class="form-control" id="newProductCategory" name="category" required>
+            <option value="" disabled selected>-- Не выбран --</option>
+            {% for category in categories %}
+                {% if category.is_active %}
+                    <option value="{{ category.id }}">{{ category.name }}</option>
+                {% endif %}
+            {% endfor %}
+        </select>
+    </div>
+
+
+    <button onclick="updateProduct()">Сохранить</button>
+    <button onclick="closeEditModal()">Закрыть</button>
+</div>
+
+<h2>Все товары</h2>
+<table class="table">
+    <thead>
+        <tr>
+            <th>id</th>
+            <th>name</th>
+            <th>slug</th>
+            <th>category_id</th>
+            <th>category_name</th>
+            <th>price</th>
+            <th>rating</th>
+            <th>supplier_id</th>
+            <th>description</th>
+            <th>image_url</th>
+            <th>image</th>
+            <th>stock</th>
+            <th>actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for product in products %}
+        {% if product.is_active %} <!-- Проверяем, активна ли категория -->
+        <tr>
+            <td>{{ product.id }}</td>
+            <td><a href="/product/{{product.id}}">{{ product.name }}</a></td>
+            <td>{{ product.slug }}</td>
+            <td>{{ product.category_id }}</td>
+            <td>{{ product.category_name }}</td>
+            <td>{{ product.price }}</td>
+            <td>{{ product.rating | round(2)}}</td>
+            <td>{{ product.supplier_id }}</td>
+            <td>{{ product.description }}</td>
+            <td>{{ product.image_url }}</td>
+            <td>
+                <img src={{product.image_url}} style="width: 100px; height: auto;">
+            </td>
+            <td>{{ product.stock }}</td>
+            <td>
+                <button class="btn btn-warning btn-sm"
+                    onclick="editProduct('{{ product.id }}', '{{ product.slug }}', '{{ product.name }}', '{{ product.description }}', '{{ product.price }}', '{{ product.image_url }}', '{{ product.stock }}', '{{ product.category_id }}')">Edit</button>
+                <button class="btn btn-danger btn-sm" onclick="deleteProduct('{{ product.id }}')">Delete</button>
+            </td>
+        </tr>
+        {% endif %}
+        {% endfor %}
+    </tbody>
+</table>
+
+<script>
+    let currentProductSlug = null;
+
+    function editProduct(id, slug, newProductName, newProductDescription, newProductPrice, newProductImageUrl, newProductStock, newProductCategory) {
+        currentProductSlug = slug;
+        document.getElementById('newProductName').value = newProductName;
+        document.getElementById('newProductDescription').value = newProductDescription;
+        document.getElementById('newProductPrice').value = newProductPrice;
+        document.getElementById('newProductImage').value = '';
+        document.getElementById('newProductStock').value = newProductStock;
+        document.getElementById('newProductCategory').value = newProductCategory;
+        
+        // document.getElementById('parentId').value = parentId;
+        document.getElementById('editProductTitle').innerText = `Редактирование товара ${newProductName}`;
+        document.getElementById('editProductModal').style.display = 'block'; // Показываем модальное окно
+    }
+
+    function closeEditModal() {
+        document.getElementById('editProductModal').style.display = 'none'; // Скрываем модальное окно
+    }
+
+
+    async function updateProduct() {
+        const name = document.getElementById('newProductName').value;
+        const description = document.getElementById('newProductDescription').value;
+        const price = document.getElementById('newProductPrice').value;
+        const stock = document.getElementById('newProductStock').value;
+        const category = document.getElementById('newProductCategory').value;
+        const image_file = document.getElementById('newProductImage').files[0];
+
+        const formData = new FormData();
+        formData.append('name', name);
+        formData.append('description', description);
+        formData.append('price', price);
+        formData.append('stock', stock);
+        formData.append('category', category);
+        if (image_file) {
+            formData.append('image_file', image_file);
+        }
+
+        try {
+            const response = await fetch(`/product/detail/${currentProductSlug}`, {
+                method: 'PUT',
+                body: formData
+            });
+
+            if (response.ok) {
+                location.reload(); // Перезагружаем страницу после успешного обновления
+            } else {
+                const error = await response.json();
+                alert('Ошибка: ' + (error.detail || 'Неизвестная ошибка'));
+            }
+        } catch (error) {
+            console.error('Ошибка при обновлении товара:', error);
+            alert('Ошибка при обновлении товара. Пожалуйста, попробуйте еще раз.');
+        }
+    }
+
+    document.getElementById('toggleFormBtn').addEventListener('click', function () {
+        const form = document.getElementById('productForm');
+        if (form.style.display === 'none') {
+            form.style.display = 'block'; // Показываем форму
+            this.textContent = 'Свернуть форму'; // Меняем текст кнопки
+        } else {
+            form.style.display = 'none'; // Скрываем форму
+            this.textContent = 'Развернуть форму'; // Меняем текст кнопки
+        }
+    });
+
+    document.getElementById('productForm').addEventListener('submit', async function (event) {
+        event.preventDefault(); // Предотвращаем стандартное поведение формы
+
+        const formData = new FormData(this); // Получаем данные формы
+
+        try {
+            const response = await fetch('/product/create', {
+                method: 'POST',
+                body: formData // Отправляем данные в формате FormData
+            });
+
+            if (response.ok) {
+                location.reload(); // Перезагружаем страницу после успешного создания
+            } else {
+                const error = await response.json();
+                alert('Ошибка: ' + (error.detail || 'Неизвестная ошибка'));
+            }
+        } catch (error) {
+            alert('Ошибка при создании товара. Пожалуйста, попробуйте еще раз.');
+        }
+    });
+
+    async function deleteProduct(productId) {
+        if (confirm('Вы уверены, что хотите удалить этот товар?')) {
+            try {
+                const response = await fetch(`/product/delete?product_id=${productId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Accept': 'application/json',
+                    }
+                });
+
+                if (response.ok) {
+                    location.reload(); // Перезагружаем страницу после успешного удаления
+                } else {
+                    const error = await response.json();
+                    alert('Ошибка: ' + (error.detail || 'Неизвестная ошибка'));
+                }
+            } catch (error) {
+                console.error('Ошибка при удалении категории:', error);
+                alert('Ошибка при удалении категории. Пожалуйста, попробуйте еще раз.');
+            }
+        }
+    }
+</script>
+
+
+
+
+{% endblock %}

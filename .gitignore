@@ -1,0 +1,38 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.db
+*.sqlite3
+
+# Виртуальные окружения
+venv/
+env/
+.venv/
+.env/
+
+# Логи
+*.log
+
+# Папки с зависимостями
+node_modules/
+dist/
+build/
+*.egg-info/
+
+# Конфигурационные файлы
+*.env
+*.local
+
+# IDE и редакторы
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Системные файлы
+.DS_Store
+Thumbs.db
+app/scripts/view_proc
+
