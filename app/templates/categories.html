@@ -3,7 +3,8 @@
 {% block title %}Категории{% endblock %}
 
 {% block content %}
-
+<link rel="stylesheet" href="/static/categories.css">
+<div class="container_c">
 <form id="categoryForm">
     <input type="hidden" id="categoryId" name="id">
     <div class="form-group">
@@ -25,43 +26,6 @@
         <button type="submit" class="btn btn-primary" id="submitBtn">Создать</button>
     </div>
 </form>
-
-<script>
-document.getElementById('categoryForm').addEventListener('submit', async function(event) {
-    event.preventDefault(); // Предотвращаем стандартное поведение формы
-
-    const formData = new FormData(this); // Получаем данные формы
-    const data = Object.fromEntries(formData); // Преобразуем FormData в объект
-
-    // Убедитесь, что parent_id является числом или null
-    if (data.parent_id === "") {
-        data.parent_id = null; // Если не выбрана родительская категория
-    } else {
-        data.parent_id = parseInt(data.parent_id, 10); // Преобразуем в число
-    }
-
-    try {
-        const response = await fetch('/category/create', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(data) // Отправляем данные в формате JSON
-        });
-
-        if (response.ok) {
-            // const result = await response.json();
-            // alert('Категория успешно создана!');
-            location.reload();
-        } else {
-            const error = await response.json();
-            alert('Ошибка: ' + (error.detail || 'Неизвестная ошибка'));
-        }
-    } catch (error) {
-        alert('Ошибка при создании категории. Пожалуйста, попробуйте еще раз.');
-    }
-});
-</script>
 
 <div id="editCategoryModal" style="display:none;">
     <h3 id="editCategoryTitle">Редактировать категорию ID {id}</h3>
@@ -96,7 +60,7 @@ document.getElementById('categoryForm').addEventListener('submit', async functio
     </thead>
     <tbody>
         {% for category in categories %}
-            {% if category.is_active %}  <!-- Проверяем, активна ли категория -->
+            {% if category.is_active %} 
                 <tr>
                     <td>{{ category.id }}</td>
                     <td>{{ category.name }}</td>
@@ -111,13 +75,47 @@ document.getElementById('categoryForm').addEventListener('submit', async functio
         {% endfor %}
     </tbody>
 </table>
-
+</div>
 
 <script>
+document.getElementById('categoryForm').addEventListener('submit', async function(event) {
+    event.preventDefault(); 
+
+    const formData = new FormData(this);
+    const data = Object.fromEntries(formData);
+
+    if (data.parent_id === "") {
+        data.parent_id = null;
+    } else {
+        data.parent_id = parseInt(data.parent_id, 10);
+    }
+
+    try {
+        const response = await fetch('/category/create', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data)
+        });
+
+        if (response.ok) {
+            // const result = await response.json();
+            // alert('Категория успешно создана!');
+            location.reload();
+        } else {
+            const error = await response.json();
+            alert('Ошибка: ' + (error.detail || 'Неизвестная ошибка'));
+        }
+    } catch (error) {
+        alert('Ошибка при создании категории. Пожалуйста, попробуйте еще раз.');
+    }
+});
+
 let currentCategoryId = null;
 
 function editCategory(id, newCategoryName, parentId) {
-    currentCategoryId = id; // Сохраняем ID текущей категории
+    currentCategoryId = id;
     document.getElementById('newCategoryName').value = newCategoryName;
     if (parentId != 'None') {
         document.getElementById('parentId').value = parentId;
@@ -126,11 +124,11 @@ function editCategory(id, newCategoryName, parentId) {
     }
     // document.getElementById('parentId').value = parentId;
     document.getElementById('editCategoryTitle').innerText = `Редактирование категории ID ${id}`;
-    document.getElementById('editCategoryModal').style.display = 'block'; // Показываем модальное окно
+    document.getElementById('editCategoryModal').style.display = 'block';
 }
 
 function closeEditModal() {
-    document.getElementById('editCategoryModal').style.display = 'none'; // Скрываем модальное окно
+    document.getElementById('editCategoryModal').style.display = 'none';
 }
 
 
@@ -142,7 +140,7 @@ async function updateCategory() {
         id: currentCategoryId,
         name: name,
         parentId: parentId
-    }); // Отладочное сообщение
+    });
 
     try {
         const response = await fetch(`/category/update_category?category_id=${currentCategoryId}`, {
@@ -153,12 +151,12 @@ async function updateCategory() {
             },
             body: JSON.stringify({
                 name: name,
-                parent_id: parentId ? parentId : null // Если parentId пустой, передаем null
+                parent_id: parentId ? parentId : null
             })
         });
 
         if (response.ok) {
-            location.reload(); // Перезагружаем страницу после успешного обновления
+            location.reload();
         } else {
             const error = await response.json();
             alert('Ошибка: ' + (error.detail || 'Неизвестная ошибка'));
@@ -180,7 +178,7 @@ async function deleteCategory(categoryId) {
             });
 
             if (response.ok) {
-                location.reload(); // Перезагружаем страницу после успешного удаления
+                location.reload();
             } else {
                 const error = await response.json();
                 alert('Ошибка: ' + (error.detail || 'Неизвестная ошибка'));
