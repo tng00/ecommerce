@@ -42,6 +42,7 @@ CREATE TABLE "products" (
   "supplier_id" integer NOT NULL
 );
 
+
 CREATE TABLE "orders" (
   "id" serial PRIMARY KEY,
   "user_id" integer NOT NULL,
@@ -73,6 +74,16 @@ CREATE TABLE "reviews" (
   "rating" integer NOT NULL,
   "comment" text
 );
+
+CREATE TABLE cart (
+    user_id INT NOT NULL,
+    product_id INT NOT NULL,
+    quantity INT NOT NULL,
+    PRIMARY KEY (user_id, product_id),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+);
+
 
 ALTER TABLE "categories" ADD FOREIGN KEY ("parent_id") REFERENCES "categories" ("id");
 

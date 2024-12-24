@@ -56,6 +56,9 @@
                 <input type="number" id="quantity_{{ product.id }}" name="quantity_{{ product.id }}" min="0"
                     max="{{ product.stock }}" value="0" oninput="checkMax(this)">
             </td>
+            <td>
+                <button onclick="addToCart('{{ product.id }}', '{{ product.price }}')">Добавить в корзину</button>
+            </td>
         </tr>
         {% endif %}
         {% endfor %}
@@ -79,6 +82,38 @@
         if (value < 0) {
             input.value = 0;
         }
+    }
+
+    function addToCart(productId, price) {
+        const quantityInput = document.getElementById('quantity_' + productId);
+        const quantity = parseInt(quantityInput.value, 10);
+
+        if (quantity < 1) {
+            alert('Количество должно быть не менее 1.');
+            return;
+        }
+
+        fetch('/cart/add', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                product_id: productId,
+                quantity: quantity
+            }),
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Товар добавлен в корзину.');
+            } else {
+                alert(data.message || 'Не удалось добавить товар в корзину.');
+            }
+        })
+        .catch(error => {
+            console.error('Ошибка при добавлении товара в корзину:', error);
+        });
     }
 
     function submitOrder(paymentMethod) {
