@@ -22,7 +22,13 @@ from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 import os
 
+from yookassa import Configuration, Payment
 import uuid
+
+idempotence_key = str(uuid.uuid4())
+Configuration.account_id = "1005331"
+Configuration.secret_key = "test_JE0B3RMdXgc_KdjzMj-aIdLdJW-cANg1KC2pgUR_xd0"
+
 
 
 CHECKS_DIR = "app/static/checks"
@@ -186,7 +192,7 @@ async def create_order(
         order_id = result.scalar()
         print(order_id)
         await db.commit()
-
+        
         for item in create_order.items:
             query = text(
                 """
@@ -207,50 +213,36 @@ async def create_order(
 
         check_id = str(uuid.uuid4())
         check_file_path = os.path.join(CHECKS_DIR, f"{check_id}.pdf")
-
-
-        c = canvas.Canvas(check_file_path, pagesize=letter)
-        width, height = letter
-
-        c.setFont("Helvetica-Bold", 16)
-        c.drawString(200, height - 50, "Receipt")
-        c.setFont("Helvetica", 12)
-
-        c.setFont("Helvetica-Bold", 12)
-        c.drawString(50, height - 120, "Item ID")
-        c.drawString(200, height - 120, "Quantity")
-        c.drawString(300, height - 120, "Price")
-        c.drawString(400, height - 120, "Total")
-
-        c.line(50, height - 125, 500, height - 125)
-
-        y_position = height - 140
-
-        c.setFont("Helvetica", 12)
-        for item in create_order.items:
-            total_price = item.quantity * item.price
-            c.drawString(50, y_position, str(item.product_id))
-            c.drawString(200, y_position, str(item.quantity))
-            c.drawString(300, y_position, f"${item.price:.2f}")
-            c.drawString(400, y_position, f"${total_price:.2f}")
-            y_position -= 40
-
-        c.line(50, y_position + 5, 500, y_position + 5)
-
         total_amount = sum(item.quantity * item.price for item in create_order.items)
-        c.setFont("Helvetica-Bold", 12)
-        c.drawString(300, y_position - 20, "Total Amount:")
-        c.drawString(400, y_position - 20, f"${total_amount:.2f}")
+        payment = Payment.create({
+                "amount": {
+                    "value": str(total_amount),
+                    "currency": "RUB"
+                },
+                "confirmation": {
+                    "type": "redirect",
+                    "return_url": "https://www.example.com/return_url"
+                },
+                "capture": True,
+                "description": "Заказ №" + str(order_id) 
+            }, uuid.uuid4())
 
-        c.showPage()
-        c.save()
-
-        return {"check_url": f"/order/check/{check_id}"}
-    else:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You are not authorized to use this method",
-        )
+        #print(f"ID: {payment.id}")
+        #print(f"Status: {payment.status}")
+        #print(f"Paid: {payment.paid}")
+        #print(f"Amount: {payment.amount.value} {payment.amount.currency}")
+        #print(f"Confirmation Type: {payment.confirmation.type}")
+        #print(f"Confirmation URL: {payment.confirmation.confirmation_url}")
+        #print(f"Created At: {payment.created_at}")
+        #print(f"Description: {payment.description}")
+        #print(f"Metadata: {payment.metadata}")
+        #print(f"Recipient Account ID: {payment.recipient.account_id}")
+        #print(f"Recipient Gateway ID: {payment.recipient.gateway_id}")
+        #print(f"Refundable: {payment.refundable}")
+        #print(f"Test: {payment.test}")
+ 
+        return JSONResponse(content={"payment_url": payment.confirmation.confirmation_url})
+       
 
 
 
