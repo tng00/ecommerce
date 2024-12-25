@@ -27,7 +27,7 @@ import uuid
 
 idempotence_key = str(uuid.uuid4())
 Configuration.account_id = "1005331"
-Configuration.secret_key = "test_JE0B3RMdXgc_KdjzMj-aIdLdJW-cANg1KC2pgUR_xd0"
+Configuration.secret_key = "test_JE0B3RMdXgc_KdjzMj-aIdLdJW-cANg1KC2pgUR_xd0"#потом не забыть спрятать в env.
 
 
 
