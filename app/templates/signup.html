@@ -3,74 +3,75 @@
 {% block title %}Регистрация{% endblock %}
 
 {% block content %}
-<link rel="stylesheet" href="/static/signup.css">
-<div class="register-container">
+
+<div class="container">
     <h2>Регистрация</h2>
-    <form id="registrationForm" class="register-form">
-        <div class="form-group">
-            <label for="first_name" class="form-label">Имя:</label>
-            <input type="text" id="first_name" name="first_name" class="form-input" required>
+    <form id="registrationForm">
+        <div>
+            <label for="first_name">Имя:</label>
+            <input type="text" id="first_name" name="first_name" required>
         </div>
-        <div class="form-group">
-            <label for="last_name" class="form-label">Фамилия:</label>
-            <input type="text" id="last_name" name="last_name" class="form-input" required>
+        <div>
+            <label for="last_name">Фамилия:</label>
+            <input type="text" id="last_name" name="last_name" required>
         </div>
-        <div class="form-group">
-            <label for="username" class="form-label">Имя пользователя:</label>
-            <input type="text" id="username" name="username" class="form-input" required>
+        <div>
+            <label for="username">Имя пользователя:</label>
+            <input type="text" id="username" name="username" required>
         </div>
-        <div class="form-group">
-            <label for="email" class="form-label">Электронная почта:</label>
-            <input type="email" id="email" name="email" class="form-input" required>
+        <div>
+            <label for="email">Электронная почта:</label>
+            <input type="email" id="email" name="email" required>
         </div>
-        <div class="form-group">
-            <label for="password" class="form-label">Пароль:</label>
-            <input type="password" id="password" name="password" class="form-input" required>
+        <div>
+            <label for="password">Пароль:</label>
+            <input type="password" id="password" name="password" required>
         </div>
-        <div class="form-group">
-            <label for="role" class="form-label">Роль:</label>
-            <select id="role" name="role" class="form-input" required>
+        <div>
+            <label for="role">Роль:</label>
+            <select id="role" name="role" required>
                 <option value="" disabled selected>Выберите роль</option>
                 <option value="supplier">Поставщик</option>
                 <option value="customer">Клиент</option>
             </select>
         </div>
-        <button type="submit" class="btn-register">Зарегистрироваться</button>
+        <button type="submit">Зарегистрироваться</button>
     </form>
-    <a href="/auth/login" class="back-link">Или войдите</a>
+    <a href="/auth/login">Или войдите</a>
 </div>
 <div id="message"></div>
 
 <script>
     async function checkAuthentication() {
-        const response = await fetch('read_current_user', {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-            }
-        });
-
-        if (response.ok) {
-            const result = await response.json();
-            if (result.isAuthenticated) {
-                document.getElementById('registrationForm').style.display = 'none';
-                let role;
-                if (result.User.is_admin) {
-                    role = 'Администратор';
-                } else if (result.User.is_supplier) {
-                    role = 'Продавец';
-                } else if (result.User.is_customer) {
-                    role = 'Клиент';
-                } else {
-                    role = 'Неизвестная роль';
+            const response = await fetch('read_current_user', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
                 }
-                document.getElementById('message').innerText = `Добро пожаловать, ${result.User.username} (${role})`;
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                if (result.isAuthenticated) {
+                    // Скрываем форму входа и показываем информацию о пользователе
+                    document.getElementById('registrationForm').style.display = 'none';
+                    let role;
+                    if (result.User.is_admin) {
+                        role = 'Администратор';
+                    } else if (result.User.is_supplier) {
+                        role = 'Продавец';
+                    } else if (result.User.is_customer) {
+                        role = 'Клиент';
+                    } else {
+                       role = 'Неизвестная роль';
+                    }
+                    document.getElementById('message').innerText = `Добро пожаловать, ${result.User.username} (${role})`;
+                }
             }
         }
-    }
 
     document.getElementById('registrationForm').addEventListener('submit', async function (event) {
-        event.preventDefault();
+        event.preventDefault(); // Предотвращаем перезагрузку страницы
 
         const formData = new FormData(this);
         const data = Object.fromEntries(formData.entries());
@@ -101,9 +102,11 @@
             document.getElementById('message').innerText = 'Ошибка при регистрации.';
             console.error('Ошибка:', error);
         }
-    });
+    }    
+    );
 
     checkAuthentication();
+
 </script>
 
 {% endblock %}

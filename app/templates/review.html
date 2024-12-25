@@ -3,7 +3,14 @@
 {% block title %}Мои отзывы{% endblock %}
 
 {% block content %}
-<link rel="stylesheet" href="/static/review.css">
+
+<style>
+    #reviewForm {
+        display: none;
+        /* Скрываем форму по умолчанию */
+    }
+</style>
+
 <h3>Мои отзывы</h3>
 
 
@@ -25,7 +32,6 @@
                 <option value="4">4</option>
                 <option value="5">5</option>
             </select>
-
             <label for="reviewPrice">Комментарий</label>
             <input type="text" class="form-control" id="reviewPrice" name="comment" required>
         </div>
@@ -34,6 +40,8 @@
         </div>
     </form>
 </div>
+
+
 
 <table class="table">
     <thead>
@@ -57,10 +65,8 @@
             {% if user.is_admin %}
                 <td>{{ review.user_id }}</td>
             {% endif %}
-            <td class="review-rating">
-                <span class="stars">⭐</span>{{ review.rating }}
-            </td>
-            <td class="review-comment">{{ review.comment }}</td>
+            <td>{{ review.rating }} ⭐</td>
+            <td>{{ review.comment }}</td>
         </tr>
         {% endfor %}
     </tbody>
@@ -72,19 +78,19 @@
     document.getElementById('toggleFormBtn').addEventListener('click', function () {
         const form = document.getElementById('reviewForm');
         if (form.style.display === 'none') {
-            form.style.display = 'block';
-            this.textContent = 'Свернуть форму';
+            form.style.display = 'block'; // Показываем форму
+            this.textContent = 'Свернуть форму'; // Меняем текст кнопки
         } else {
-            form.style.display = 'none';
-            this.textContent = 'Развернуть форму';
+            form.style.display = 'none'; // Скрываем форму
+            this.textContent = 'Развернуть форму'; // Меняем текст кнопки
         }
     });
 
     document.getElementById('reviewForm').addEventListener('submit', async function (event) {
-        event.preventDefault();
+        event.preventDefault(); // Предотвращаем стандартное поведение формы
 
-        const formData = new FormData(this);
-        const data = Object.fromEntries(formData);
+        const formData = new FormData(this); // Получаем данные формы
+        const data = Object.fromEntries(formData); // Преобразуем FormData в объект
 
         try {
             const response = await fetch('/review/create', {
@@ -92,7 +98,7 @@
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify(data)
+                body: JSON.stringify(data) // Отправляем данные в формате JSON
             });
 
             if (response.ok) {

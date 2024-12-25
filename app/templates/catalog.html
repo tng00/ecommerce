@@ -3,17 +3,66 @@
 {% block title %}Товары{% endblock %}
 
 {% block content %}
-<link rel="stylesheet" href="/static/catalog.css">
+
 <h2>Все товары</h2>
+
+<!-- Таблица товаров -->
+<table class="table">
+    <thead>
+        <tr>
+            <th>Артикул</th>
+            <th>Фото</th>
+            <th>Название</th>
+            <!-- <th>Category ID</th> -->
+            <th>Цена</th>
+            <th>Рейтинг</th>
+            <th>Описание</th>
+            <!-- <th>Image_url</th> -->
+            <th>В наличии</th>
+            <th>К заказу</th> <!-- Новая колонка для ввода количества -->
+        </tr>
+    </thead>
+    <tbody>
+        {% for product in products %}
+        {% if product.is_active %} <!-- Проверяем, активна ли категория -->
+        <tr>
+            <td>{{ product.id }}</td>
+            <td>
+                <img src={{product.image_url}} alt="{{ product.name }}" style="width: 100px; height: auto;">
+            </td>
+            <td>
+                <a href="/product/{{product.id}}">{{ product.name }}</a>
+            </td>
+            <!-- <td>{{ product.category_id }}</td> -->
+            <td>{{ product.price }}</td>
+            <td>{{ product.rating | round(1) }} ⭐</td>
+            <!-- <td>⭐</td> -->
+            <td>{{ product.description }}</td>
+            <!-- <td>{{ product.image_url }}</td> -->
+            <td>{{ product.stock }}</td>
+            <td>
+                <input type="number" id="quantity_{{ product.id }}" name="quantity_{{ product.id }}" min="0"
+                    max="{{ product.stock }}" value="0" oninput="checkMax(this)">
+            </td>
+            <td>
+                <button onclick="addToCart('{{ product.id }}', '{{ product.price }}')">Добавить в корзину</button>
+            </td>
+        </tr>
+        {% endif %}
+        {% endfor %}
+    </tbody>
+</table>
 
 
 
 <script>
+
     function checkMax(input) {
         input.value = input.value.replace(/[^0-9]/g, '');
-        const max = parseInt(input.max, 10); 
-        const value = parseInt(input.value, 10); 
+        const max = parseInt(input.max, 10); // Получаем максимальное значение
+        const value = parseInt(input.value, 10); // Получаем текущее значение
 
+        // Если текущее значение больше максимума, устанавливаем его в максимум
         if (value > max) {
             input.value = max;
         }
@@ -56,65 +105,67 @@
     }
 
     function submitOrder(paymentMethod) {
-    const address = document.getElementById('address').value;
-    const orderItems = [];
-    let total = 0;
+        const address = document.getElementById('address').value;
+        const orderItems = [];
+        let total = 0;
 
-    const productCards = document.querySelectorAll('.product-card');
+        // Собираем данные о товарах и их количестве
+        const products = [];
 
-    productCards.forEach(card => {
-        const id = card.querySelector('.product-link').href.split('/').pop();
-        const price = parseFloat(card.querySelector('.product-price').textContent.replace('₽', '').trim());
-        const quantityInput = card.querySelector('input[type="number"]');
-        const quantity = parseInt(quantityInput.value, 10) || 0;
+        // Получаем данные о продуктах из таблицы
+        const rows = document.querySelectorAll('tbody tr');
+        rows.forEach(row => {
+            const id = row.cells[0].innerText; // ID продукта
+            const price = row.cells[3].innerText; // Цена продукта
+            const quantity = document.getElementById('quantity_' + id).value; // Количество
 
-        if (quantity > 0) {
-            orderItems.push({
-                product_id: id,
-                quantity: quantity,
-                price: price
-            });
-            total += price * quantity;
-        }
-    });
-
-    if (address.trim() === '') {
-        alert('Пожалуйста, введите адрес.');
-        return;
-    }
-
-    if (orderItems.length === 0) {
-        alert('Пожалуйста, выберите хотя бы один товар.');
-        return;
-    }
-
-    fetch('/order/create', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            address: address,
-            is_card: paymentMethod === 'is_card',
-            is_sbp: paymentMethod === 'is_sbp',
-            items: orderItems,
-            total: total
-        }),
-    })
-        .then(response => response.json())
-        .then(data => {
-            if (data.check_url) {
-                window.open(data.check_url, '_blank');
-            } else {
-                alert('Заказ успешно создан!');
+            if (quantity > 0) {
+                orderItems.push({
+                    product_id: id,
+                    quantity: quantity,
+                    price: price
+                });
             }
-        })
-        .catch(error => {
-            console.error('Ошибка:', error);
-            alert('Произошла ошибка при создании заказа.');
+            total += price * quantity;
         });
-}
 
+        if (address === '') {
+            alert('Пожалуйста, введите адрес.');
+            return;
+        }
+
+        // Проверяем, есть ли хотя бы один товар в заказе
+        if (orderItems.length === 0) {
+            alert('Пожалуйста, выберите хотя бы один товар.');
+            return;
+        }
+
+        // Отправляем POST-запрос на сервер
+        fetch('/order/create', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                address: address,
+                is_card: paymentMethod === 'is_card',
+                is_sbp: paymentMethod === 'is_sbp',
+                items: orderItems,
+                total: total
+            }),
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.check_url) {
+                    // Выполнение GET-запроса для получения чека
+                    window.open(data.check_url, '_blank');
+                    // window.location.href = data.check_url;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+    }
 
 </script>
 

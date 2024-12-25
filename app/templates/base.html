@@ -4,85 +4,53 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Categories{% endblock %}</title>
-    <link rel="stylesheet" href="/static/base.css">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
 </head>
 <body>
     <div class="container">
+        <nav class="navbar navbar-expand-lg navbar-light bg-light">
+            <a class="navbar-brand" href="/">Главная</a>
+            <div class="collapse navbar-collapse">
+                <ul class="navbar-nav mr-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/product/catalog">Каталог товаров</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/cart">Корзина</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/order">Активные заказы</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/review">Добавить отзыв</a>
+                    </li>
+                    {% if user.is_admin %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="/category">Управление категориями</a>
+                    </li>
+                    {% endif %}
+                    {% if user.is_admin or user.is_supplier %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="/product">Управление товарами</a>
+                    </li>
+                    {% endif %}
+                    {% if user %}
+                    <form method="POST" action="/auth/logout" style="display: inline;">
+                        <button type="submit" class="btn btn-link nav-link">Выход</button>
+                    </form>
+                    {% else %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="/auth/login">Вход</a>
+                    </li>
+                    {% endif %}
 
+                </ul>
             </div>
-            <div class="nav-bottom">
-                <form class="search-form">
-                    <input type="text" name="q" placeholder="Поиск товаров..." class="search-input">
-                    <button type="submit" class="search-btn">🔍</button>
-                </form>
-            </div>
-        </nav>        
+        </nav>
         <div class="mt-4">
             {% block content %}{% endblock %}
         </div>
     </div>
-    <script>
-document.addEventListener('DOMContentLoaded', function () {
-    const addToCartForms = document.querySelectorAll('.add-to-cart-form');
-    const categoryBtn = document.getElementById('category-btn');
-    const dropdownMenu = document.getElementById('dropdown-menu');
-
-    let dropdownVisible = false;
-
-    addToCartForms.forEach(form => {
-        form.addEventListener('submit', function (event) {
-            event.preventDefault();
-
-            const formData = new FormData(this);
-            const url = this.action;
-
-            fetch(url, {
-                method: 'POST',
-                body: formData,
-            })
-            .then(response => {
-                if (response.ok) {
-                    alert('Товар добавлен в корзину!');
-                } else {
-                    alert('Ошибка при добавлении товара в корзину');
-                }
-            })
-            .catch(error => {
-                console.error('Ошибка:', error);
-                alert('Произошла ошибка, попробуйте еще раз позже.');
-            });
-        });
-    });
-
-    categoryBtn.addEventListener('click', function (e) {
-        e.stopPropagation();
-        dropdownVisible = !dropdownVisible;
-        dropdownMenu.style.display = dropdownVisible ? 'block' : 'none';
-    });
-
-    window.addEventListener('click', function (e) {
-        if (!categoryBtn.contains(e.target) && !dropdownMenu.contains(e.target)) {
-            dropdownMenu.style.display = 'none';
-            dropdownVisible = false;
-        }
-    });
-
-    const categoryLinks = document.querySelectorAll('.category-link');
-    categoryLinks.forEach(function (link) {
-        link.addEventListener('click', function (e) {
-            e.preventDefault();
-            const targetId = link.getAttribute('data-target');
-            const submenu = document.getElementById(targetId);
-
-            if (submenu) {
-                const isVisible = getComputedStyle(submenu).display === 'block';
-                submenu.style.display = isVisible ? 'none' : 'block';
-            }
-        });
-    });
-});
-
-    </script>
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
