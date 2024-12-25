@@ -1,5 +1,5 @@
 from fastapi import FastAPI, Depends
-from app.routers import category, product, auth, permission, order, review
+from app.routers import category, product, auth, permission, order, review, cart
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -16,7 +16,7 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"], 
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -94,5 +94,5 @@ app.include_router(product.router)
 app.include_router(permission.router)
 app.include_router(order.router)
 app.include_router(review.router)
-
+app.include_router(cart.router)
 

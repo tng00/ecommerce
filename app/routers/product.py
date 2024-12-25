@@ -11,6 +11,8 @@ from app.schemas import CreateProduct
 from app.routers.auth import get_current_user
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
+from fastapi import File, UploadFile, Form
+from pathlib import Path
 
 
 router = APIRouter(prefix="/product", tags=["product"])
@@ -101,9 +103,39 @@ async def get_product_detail(
             }
         ]
 
+        # Получаем отзывы о продукте
+        reviews_query = text("""
+            SELECT 
+                r.id,
+                r.product_id,
+                r.user_id,
+                r.rating,
+                r.comment,
+                p.name AS product_name,
+                u.first_name || ' ' || u.last_name AS user_name
+            FROM reviews r
+            JOIN products p ON r.product_id = p.id
+            JOIN users u ON r.user_id = u.id
+            WHERE p.is_active = TRUE AND r.product_id = :product_id
+        """)
+        reviews_result = await db.execute(reviews_query, {"product_id": product_id})
+        reviews = reviews_result.fetchall()
+
+        reviews_list = [
+            {
+                "id": review.id,
+                "product_id": review.product_id,
+                "user_id": review.user_id,
+                "user_name": review.user_name,  # Имя пользователя
+                "rating": review.rating,
+                "comment": review.comment,
+            }
+            for review in reviews
+        ]
+
         return templates.TemplateResponse(
             "product_page.html",
-            {"request": request, "products": product_detail, "user": get_user},
+            {"request": request, "products": product_detail, "reviews": reviews_list, "user": get_user},
         )
 
     except Exception as e:
@@ -150,8 +182,6 @@ async def get_active_products(
         )
 
 
-from fastapi import File, UploadFile, Form
-from pathlib import Path
 
 
 @router.post("/create")

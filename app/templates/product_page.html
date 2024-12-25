@@ -51,6 +51,33 @@
     </div>
 </div>
 
+<div class="product-reviews mt-5">
+    <h3>Отзывы о товаре</h3>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Покупатель</th>
+                <th>Оценка</th>
+                <th>Комментарий</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for review in reviews %}
+            <tr>
+                <td>{{ review.user_name }}</td>
+                <td>{{ review.rating }} ⭐</td>
+                <td>{{ review.comment }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    {% if not reviews %}
+        <p>Отзывов пока нет.</p>
+    {% endif %}
+</div>
+
+
 <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
 <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>

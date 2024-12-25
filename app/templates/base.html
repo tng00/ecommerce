@@ -8,45 +8,7 @@
 </head>
 <body>
     <div class="container">
-        <nav>
-            <div class="nav-top">
-                <div class="nav-left">
-                    <button id="category-btn" class="category-btn">Категории</button>
-                    <div id="dropdown-menu" class="dropdown">
-                        <ul class="dropdown-menu">
-                            {% for category in categories %}
-                                <li class="dropdown-item">
-                                    <a href="#" 
-                                       class="category-link" data-target="submenu-{{ category.category_id }}">
-                                        {{ category.name }}
-                                    </a>
-                                    {% if category.subcategories %}
-                                        <ul id="submenu-{{ category.category_id }}" class="submenu">
-                                            {% for subcategory in category.subcategories %}
-                                                <li>
-                                                    <a href="#">
-                                                        {{ subcategory.name }}
-                                                    </a>
-                                                </li>
-                                            {% endfor %}
-                                        </ul>
-                                    {% endif %}
-                                </li>
-                            {% endfor %}
-                        </ul>
-                    </div>
-                </div>                            
-                <a href="/">Главная</a>
-                <a href="/product/catalog">Каталог товаров</a>
-                <a href="/order">Заказы</a>
-                <a href="/review">Отзывы</a>
-                {% if user.is_admin %}
-                <a href="/category">Управление категориями</a>
-                {% endif %}
-                {% if user.is_admin or user.is_supplier %}
-                <a href="/product">Управление товарами</a>
-                {% endif %}
-                <a href="/auth/login">Вход</a>
+
             </div>
             <div class="nav-bottom">
                 <form class="search-form">
