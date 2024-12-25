@@ -225,6 +225,8 @@ async def create_access_token(username: str, user_id: int, is_admin: bool, is_su
     expires = datetime.now() + expires_delta
     encode.update({'exp': expires})
     return jwt.encode(encode, SECRET_KEY, algorithm=ALGORITHM)
+
+
 ######################################################################################################### 2
 
 
