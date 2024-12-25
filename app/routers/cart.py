@@ -9,6 +9,12 @@ from app.schemas import AddToCartRequest
 from app.backend.db_depends import get_db
 from app.routers.auth import get_current_user
 from pydantic import BaseModel
+from yookassa import Configuration, Payment, Refund
+import uuid
+
+idempotence_key = str(uuid.uuid4())
+Configuration.account_id = "1005331"
+Configuration.secret_key = "test_JE0B3RMdXgc_KdjzMj-aIdLdJW-cANg1KC2pgUR_xd0"
 
 # Настройка маршрутов и шаблонов
 router = APIRouter(prefix="/cart", tags=["cart"])
