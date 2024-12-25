@@ -1,8 +1,3 @@
-{% extends "base.html" %}
-
-{% block title %}Cart{% endblock %}
-{% block content %}
-
 <!DOCTYPE html>
 <html lang="en">
 
@@ -170,12 +165,12 @@
         }
 
 
-    async function submitOrder(isCard) {
-        const address = document.getElementById('address').value;
-        if (!address) {
-            alert('Пожалуйста, введите адрес доставки.');
-            return;
-        }
+        async function submitOrder(isCard) {
+            const address = document.getElementById('address').value;
+            if (!address) {
+                alert('Пожалуйста, введите адрес доставки.');
+                return;
+            }
 
             // Пример данных корзины, замените на динамические значения, если требуется
             const cartItems = [
@@ -223,4 +218,3 @@
 </body>
 
 </html>
-{% endblock %}
