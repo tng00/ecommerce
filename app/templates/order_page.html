@@ -16,6 +16,12 @@
         <p><strong>Общая сумма:</strong> {{ order[0].total }} ₽</p>
         <p><strong>Статус:</strong> {{ order[0].status }}</p>
 
+        {% if check_url %}
+        <p>
+            <a href="{{ check_url }}" class="btn btn-primary" target="_blank">Скачать чек</a>
+        </p>
+        {% endif %}
+
         <h3>Элементы заказа</h3>
         <table class="table">
             <thead>

@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Depends
-from app.routers import category, product, auth, permission, order, review, cart
-from fastapi.responses import HTMLResponse, JSONResponse
+from app.routers import category, product, auth, permission, order, review, cart, notifications, events, search
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi import Request, HTTPException
@@ -61,13 +61,17 @@ async def http_exception_handler(
         )
 
 
-@app.get("/", response_class=HTMLResponse)
-async def main_page(
-    request: Request, get_user: Annotated[dict, Depends(get_current_user)]
-):
-    return templates.TemplateResponse(
-        "index.html", {"request": request, "user": get_user}
-    )
+# @app.get("/", response_class=HTMLResponse)
+# async def main_page(
+#     request: Request, get_user: Annotated[dict, Depends(get_current_user)]
+# ):
+#     return templates.TemplateResponse(
+#         "index.html", {"request": request, "user": get_user}
+#     )
+
+@app.get("/", include_in_schema=False)
+async def redirect_to_search():
+    return RedirectResponse(url="/search/")
 
 
 @app.get("/create_session")
@@ -95,4 +99,5 @@ app.include_router(permission.router)
 app.include_router(order.router)
 app.include_router(review.router)
 app.include_router(cart.router)
-
+app.include_router(search.router)
+# app.include_router(events.router)

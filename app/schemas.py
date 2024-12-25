@@ -39,7 +39,6 @@ class AddToCartRequest(BaseModel):
     product_id: int
     quantity: int
 
-
 class CreateCategory(BaseModel):
     name: str
     parent_id: Optional[int] = None
