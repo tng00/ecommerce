@@ -3,15 +3,8 @@
 {% block title %}Товары{% endblock %}
 
 {% block content %}
-
-<style>
-    #productForm {
-        display: none;
-        /* Скрываем форму по умолчанию */
-    }
-</style>
-
-<div class="container mt-5">
+<link rel="stylesheet" href="/static/product.css">
+<div class="container_p mt-5">
     <h3>Создать новый товар</h3>
     <button id="toggleFormBtn" class="btn btn-secondary">Развернуть форму</button>
     <form id="productForm" enctype="multipart/form-data">

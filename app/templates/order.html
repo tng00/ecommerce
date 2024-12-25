@@ -3,9 +3,16 @@
 {% block title %}Заказы{% endblock %}
 
 {% block content %}
+<link rel="stylesheet" href="/static/order.css">
+{% if user.is_supplier %}
+    <h3>Сборочные задания</h3>
+{% elif user.is_customer %}
+    <h3>Мои заказы</h3>
+{% elif user.is_admin %}
+    <h3>Все заказы</h3>
+{% endif %}
 
-<!-- Форма для изменения статуса -->
-<form id="statusForm" style="display: none;">
+<form id="statusForm">
     <div class="form-group">
         <label id="statusLabel">Редактировать статус заказа ID ...</label>
         <select class="form-control" id="newStatusSelect" name="new_status">
@@ -19,68 +26,55 @@
     </div>
 </form>
 
-<!-- Таблица товаров -->
 <table class="table">
-    {% if user.is_supplier %}
-        <h3> Сборочные задания </h3>
-    {% endif %}
-    {% if user.is_customer %}
-        <h3> Мои заказы </h3>
-    {% endif %}
-    {% if user.is_admin %}
-        <h3> Все заказы </h3>
-    {% endif %}
     <thead>
         <tr>
             {% if user.is_supplier %}
-            <!-- <th>ID</th> -->
-            <th>Номер заказа</th>
-            <th>Артикул товара</th>
-            <th>Количество</th>
-            <th>Цена</th>
+                <th>Номер заказа</th>
+                <th>Артикул товара</th>
+                <th>Количество</th>
+                <th>Цена</th>
             {% endif %}
             {% if user.is_admin or user.is_customer %}
-            <th>Номер заказа</th>
-            {% if user.is_admin %}
-            <th>Номер пользователя</th>
-            <th>Номер платежа</th>
+                <th>Номер заказа</th>
+                {% if user.is_admin %}
+                    <th>Номер пользователя</th>
+                    <th>Номер платежа</th>
+                {% endif %}
+                <th>Дата и время заказа</th>
+                <th>Адрес доставки</th>
+                <th>Сумма</th>
+                <th>Статус</th>
+                {% if user.is_admin %}
+                    <th>Действия</th>
+                {% endif %}
             {% endif %}
-            <th>Дата и время заказа</th>
-            <th>Адрес доставки</th>
-            <th>Сумма</th>
-            <th>Статус</th>
-            {% endif %}
-
         </tr>
     </thead>
     <tbody>
         {% for order in orders %}
         <tr>
             {% if user.is_supplier %}
-            <!-- <td>{{ order.id }}</td> -->
-            <!-- <td>{{ order.order_id }}</td> -->
-            <td><a href="/order/{{order.order_id}}">{{ order.order_id }}</a></td>
-            <td>{{ order.product_id }}</td>
-            <td>{{ order.quantity }}</td>
-            <td>{{ order.price }}</td>
+                <td><a href="/order/{{ order.order_id }}">{{ order.order_id }}</a></td>
+                <td>{{ order.product_id }}</td>
+                <td>{{ order.quantity }}</td>
+                <td>{{ order.price }}</td>
             {% endif %}
-
             {% if user.is_admin or user.is_customer %}
-            <!-- <td>{{ order.id }}</td> -->
-            <td><a href="/order/{{order.id}}">{{ order.id }}</a></td>
-            {% if user.is_admin %}
-            <td>{{ order.user_id }}</td>
-            <td>{{ order.payment_id }}</td>
-            {% endif %}
-            <td>{{ order.order_date }}</td>
-            <td>{{ order.address }}</td>
-            <td>{{ order.total }}</td>
-            <td>{{ order.status }}</td>
-            {% endif %}
-            {% if user.is_admin %}
-            <td>
-                <button class="btn btn-warning btn-sm" onclick="editStatus('{{ order.id }}')">Edit</button>
-            </td>
+                <td><a href="/order/{{ order.id }}">{{ order.id }}</a></td>
+                {% if user.is_admin %}
+                    <td>{{ order.user_id }}</td>
+                    <td>{{ order.payment_id }}</td>
+                {% endif %}
+                <td>{{ order.order_date }}</td>
+                <td>{{ order.address }}</td>
+                <td>{{ order.total }}</td>
+                <td>{{ order.status }}</td>
+                {% if user.is_admin %}
+                    <td>
+                        <button class="btn btn-warning btn-sm" onclick="editStatus('{{ order.id }}')">Edit</button>
+                    </td>
+                {% endif %}
             {% endif %}
         </tr>
         {% endfor %}
@@ -91,17 +85,16 @@
     let currentOrderId = null;
 
     function editStatus(orderId) {
-        currentOrderId = orderId; // Сохраняем ID текущего заказа
+        currentOrderId = orderId; 
         document.getElementById('statusLabel').innerText = `Редактировать статус заказа ID ${orderId}`;
-        document.getElementById('statusForm').style.display = 'block'; // Показываем форму
+        document.getElementById('statusForm').style.display = 'block'; 
     }
 
     document.getElementById('statusForm').addEventListener('submit', function (event) {
-        event.preventDefault(); // Предотвращаем стандартное поведение формы
+        event.preventDefault();
 
-        const newStatus = document.getElementById('newStatusSelect').value; // Получаем новое значение статуса
+        const newStatus = document.getElementById('newStatusSelect').value;
 
-        // Отправляем запрос на обновление статуса заказа
         fetch(`/order/update/${currentOrderId}`, {
             method: 'PUT',
             headers: {
@@ -112,7 +105,7 @@
             .then(response => {
                 if (response.ok) {
 
-                    location.reload(); // Перезагружаем страницу для обновления данных
+                    location.reload();
                 } else {
                     alert('Ошибка при обновлении статуса заказа.');
                 }
@@ -122,10 +115,6 @@
                 alert('Ошибка при обновлении статуса заказа.');
             });
     });
-
-
-
-    // Вызов функции при необходимости, например, по нажатию кнопки
     
 </script>
 

@@ -1,33 +1,8 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Categories{% endblock %}</title>
-    <link rel="stylesheet" href="/static/base.css">
-</head>
-<body>
-    <div class="container">
-
-            </div>
-            <div class="nav-bottom">
-                <form class="search-form">
-                    <input type="text" name="q" placeholder="Поиск товаров..." class="search-input">
-                    <button type="submit" class="search-btn">🔍</button>
-                </form>
-            </div>
-        </nav>        
-        <div class="mt-4">
-            {% block content %}{% endblock %}
-        </div>
-    </div>
-    <script>
 document.addEventListener('DOMContentLoaded', function () {
+
     const addToCartForms = document.querySelectorAll('.add-to-cart-form');
     const categoryBtn = document.getElementById('category-btn');
     const dropdownMenu = document.getElementById('dropdown-menu');
-
-    let dropdownVisible = false;
 
     addToCartForms.forEach(form => {
         form.addEventListener('submit', function (event) {
@@ -56,14 +31,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
     categoryBtn.addEventListener('click', function (e) {
         e.stopPropagation();
-        dropdownVisible = !dropdownVisible;
-        dropdownMenu.style.display = dropdownVisible ? 'block' : 'none';
+        dropdownMenu.style.display = dropdownMenu.style.display === 'block' ? 'none' : 'block';
     });
 
     window.addEventListener('click', function (e) {
         if (!categoryBtn.contains(e.target) && !dropdownMenu.contains(e.target)) {
             dropdownMenu.style.display = 'none';
-            dropdownVisible = false;
         }
     });
 
@@ -75,16 +48,8 @@ document.addEventListener('DOMContentLoaded', function () {
             const submenu = document.getElementById(targetId);
 
             if (submenu) {
-                const isVisible = getComputedStyle(submenu).display === 'block';
-                submenu.style.display = isVisible ? 'none' : 'block';
+                submenu.style.display = submenu.style.display === 'block' ? 'none' : 'block';
             }
         });
     });
 });
-
-    </script>
-    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
-</body>
-</html>
