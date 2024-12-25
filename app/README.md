@@ -38,6 +38,13 @@ pg_restore -U ecommerce -h localhost -d ecommerce -v ecommerce.dump
 
 ```
 
+- Создай резервную копию:
+```sh
+cd ./Desktop/MAI/e_com_proj/ecommerce 
+pg_dump -U postgres -h localhost -p 5433 -F c -b -v -f ecommerce.dump ecommerce
+```
+
+
 4. Для входа в СУБД:
 
 ```sh
