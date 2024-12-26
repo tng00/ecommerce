@@ -93,7 +93,7 @@
 
 
         <!-- Поиск с проверкой -->
-        {% if request.path != '/cart/' %}
+        {% if request.path != '/cart/' and request.path != '/product/' %}
         <!-- Форма поиска -->
         <form method="get" action="/search/" class="mx-auto navbar-search d-flex">
             <input
