@@ -21,6 +21,10 @@ router = APIRouter(prefix="/cart", tags=["cart"])
 templates = Jinja2Templates(directory="app/templates")
 
 
+######################################################################
+                            #Cart_route
+######################################################################
+
 @router.get("/", response_class=HTMLResponse)
 async def cart(
     request: Request,
@@ -36,6 +40,10 @@ async def cart(
         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
 
     try:
+
+        # Сначала обновляем состояние корзины
+        await update_cart_state(db, user_id)
+
         # SQL запрос для получения содержимого корзины
         query = text("""
             SELECT 
@@ -85,11 +93,112 @@ async def cart(
             detail=f"Произошла ошибка при загрузке корзины: {str(e)}"
         )
 
+async def calculate_total_cost(db: AsyncSession, user_id: int) -> float:
+    """
+    Рассчитывает общую стоимость корзины для пользователя.
+    """
+    total_query = text("""
+        SELECT SUM(p.price * c.quantity) AS total_cost
+        FROM cart c
+        JOIN products p ON c.product_id = p.id
+        WHERE c.user_id = :user_id
+    """)
+    result = await db.execute(total_query, {"user_id": user_id})
+    return result.scalar() or 0  # Если корзина пуста, вернуть 0
+
+
+async def update_cart_state(db: AsyncSession, user_id: int):
+    """
+    Обновляет состояние корзины для пользователя.
+    Удаляет позиции с нулевым количеством и синхронизирует актуальные данные товаров.
+    """
+    # Удаляем записи с нулевым количеством на случай несогласованности данных
+    delete_empty_items_query = text("""
+        DELETE FROM cart
+        WHERE user_id = :user_id AND quantity <= 0
+    """)
+    await db.execute(delete_empty_items_query, {"user_id": user_id})
+
+        # Удаляем товары с нулевым остатком на складе
+    delete_out_of_stock_query = text("""
+        DELETE FROM cart
+        USING products p
+        WHERE cart.product_id = p.id
+        AND cart.user_id = :user_id
+        AND p.stock = 0
+    """)
+    await db.execute(delete_out_of_stock_query, {"user_id": user_id})
+
+
+    # Обновляем данные корзины с учетом текущего состояния товаров (активность, наличие на складе)
+    update_cart_query = text("""
+        UPDATE cart
+        SET quantity = LEAST(quantity, p.stock)  -- Устанавливаем количество не больше доступного на складе
+        FROM products p
+        WHERE cart.product_id = p.id
+        AND cart.user_id = :user_id
+        AND p.is_active = TRUE  -- Только активные товары
+    """)
+    await db.execute(update_cart_query, {"user_id": user_id})
+
+    # Удаляем записи для товаров, которые более недоступны
+    delete_inactive_items_query = text("""
+        DELETE FROM cart
+        USING products p
+        WHERE cart.product_id = p.id
+        AND cart.user_id = :user_id
+        AND p.is_active = FALSE
+    """)
+    await db.execute(delete_inactive_items_query, {"user_id": user_id})
+
+    await db.commit()
+
+
+@router.delete("/remove/{product_id}")
+async def remove_item_from_cart(
+    product_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    """
+    Удалить товар из корзины и обновить её состояние.
+    """
+    user_id = current_user.get("id")
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    try:
+        # Удаляем товар из корзины
+        delete_query = text("""
+            DELETE FROM cart WHERE user_id = :user_id AND product_id = :product_id
+        """)
+        await db.execute(delete_query, {"user_id": user_id, "product_id": product_id})
+        await db.commit()
+
+        # Обновляем корзину
+        await update_cart_state(db, user_id)
+
+        # Рассчитываем общую стоимость корзины
+        total_query = text("""
+            SELECT SUM(p.price * c.quantity) AS total_cost
+            FROM cart c
+            JOIN products p ON c.product_id = p.id
+            WHERE c.user_id = :user_id
+        """)
+        result = await db.execute(total_query, {"user_id": user_id})
+        total_cost = result.scalar() or 0  # Если корзина пуста, вернуть 0
+
+        return {"status": "success", "total_cost": total_cost}
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка при удалении товара: {str(e)}")
+
+
 @router.put("/update")
 async def update_cart(
-    db: Annotated[AsyncSession, Depends(get_db)],
-    current_user: Annotated[dict, Depends(get_current_user)],
-    quantities: Annotated[dict[int, int], Body(...)],  # JSON: {product_id: quantity}
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+    quantities: dict[int, int] = Body(...),  # JSON: {product_id: quantity}
 ):
     """
     Обновить количество товаров в корзине.
@@ -144,15 +253,11 @@ async def update_cart(
                         "product_id": product_id
                     })
 
+        # Обновляем корзину
+        await update_cart_state(db, user_id)
+
         # Рассчитываем общую стоимость корзины
-        total_query = text("""
-            SELECT SUM(p.price * c.quantity) AS total_cost
-            FROM cart c
-            JOIN products p ON c.product_id = p.id
-            WHERE c.user_id = :user_id
-        """)
-        result = await db.execute(total_query, {"user_id": user_id})
-        total_cost = result.scalar() or 0
+        total_cost = await calculate_total_cost(db, user_id)
 
         return {"status": "success", "total_cost": total_cost}
 
@@ -161,6 +266,9 @@ async def update_cart(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Ошибка при обновлении корзины: {str(e)}"
         )
+
+
+
 
 @router.post("/add")
 async def add_item_to_cart(
@@ -231,133 +339,6 @@ async def add_item_to_cart(
         )
 
 
-
-
-@router.delete("/remove/{product_id}")
-async def remove_item_from_cart(
-    product_id: int,
-    db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(get_current_user),
-):
-    """
-    Удалить товар из корзины.
-    """
-    user_id = current_user.get("id")
-    if not user_id:
-        raise HTTPException(status_code=401, detail="Unauthorized")
-
-    try:
-        # Удаляем товар из корзины
-        delete_query = text("""
-            DELETE FROM cart WHERE user_id = :user_id AND product_id = :product_id
-        """)
-        await db.execute(delete_query, {"user_id": user_id, "product_id": product_id})
-        await db.commit()
-
-        # Рассчитываем общую стоимость корзины
-        total_query = text("""
-            SELECT SUM(p.price * c.quantity) AS total_cost
-            FROM cart c
-            JOIN products p ON c.product_id = p.id
-            WHERE c.user_id = :user_id
-        """)
-        result = await db.execute(total_query, {"user_id": user_id})
-        total_cost = result.scalar() or 0  # Если корзина пуста, вернуть 0
-
-        return {"status": "success", "total_cost": total_cost}
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Ошибка при удалении товара: {str(e)}")
-
-
-######################################################################
-                            #Cart_route
-######################################################################
-
-
-
-
 ######################################################################
                             #Cart_db
 ######################################################################
-
-
-# async def add_to_cart(pool: asyncpg.pool.Pool, user_id: int, product_id: int, quantity: int):
-#     """
-#     Добавить товар в корзину пользователя.
-#     """
-#     async with pool.acquire() as conn:
-#         # Проверяем, есть ли уже этот товар в корзине пользователя
-#         existing = await conn.fetchrow("""
-#             SELECT quantity FROM cart WHERE user_id = $1 AND product_id = $2
-#         """, user_id, product_id)
-
-#         if existing:
-#             # Обновляем количество товара в корзине
-#             await conn.execute("""
-#                 UPDATE cart SET quantity = quantity + $1 WHERE user_id = $2 AND product_id = $3
-#             """, quantity, user_id, product_id)
-#         else:
-#             # Проверяем, активен ли продукт и есть ли на складе
-#             product = await conn.fetchrow("""
-#                 SELECT stock, is_active FROM products WHERE id = $1
-#             """, product_id)
-
-#             if not product or not product["is_active"]:
-#                 raise ValueError(f"Товар с ID {product_id} недоступен для покупки.")
-#             if product["stock"] < quantity:
-#                 raise ValueError(f"Недостаточно товара на складе для продукта {product_id}.")
-
-#             # Добавляем новый товар в корзину
-#             await conn.execute("""
-#                 INSERT INTO cart (user_id, product_id, quantity)
-#                 VALUES ($1, $2, $3)
-#             """, user_id, product_id, quantity)
-
-
-# async def get_cart_items(pool: asyncpg.pool.Pool, user_id: int):
-#     """
-#     Получить все товары в корзине пользователя.
-#     """
-#     async with pool.acquire() as conn:
-#         return await conn.fetch("""
-#             SELECT product_id, name, description, price, stock, quantity, total_cost, image_url
-#             FROM cart_details
-#             WHERE user_id = $1
-#         """, user_id)
-
-# async def update_cart_quantities(pool: asyncpg.pool.Pool, user_id: int, quantities: dict):
-#     """
-#     Обновить количество товаров в корзине пользователя.
-#     """
-#     async with pool.acquire() as conn:
-#         async with conn.transaction():
-#             for product_id, quantity in quantities.items():
-#                 quantity = int(quantity)
-#                 if quantity <= 0:
-#                     # Удаляем товар из корзины, если количество <= 0
-#                     await conn.execute("""
-#                         DELETE FROM cart WHERE user_id = $1 AND product_id = $2
-#                     """, user_id, product_id)
-#                 else:
-#                     # Проверяем доступность товара на складе
-#                     product = await conn.fetchrow("""
-#                         SELECT stock, is_active FROM products WHERE id = $1
-#                     """, product_id)
-#                     if not product or not product["is_active"]:
-#                         raise ValueError(f"Товар с ID {product_id} недоступен для обновления.")
-#                     if quantity > product["stock"]:
-#                         raise ValueError(f"Недостаточно товара на складе для продукта {product_id}.")
-                    
-#                     await conn.execute("""
-#                         UPDATE cart SET quantity = $1 WHERE user_id = $2 AND product_id = $3
-#                     """, quantity, user_id, product_id)
-
-# async def remove_from_cart(pool: asyncpg.pool.Pool, user_id: int, product_id: int):
-#     """
-#     Удалить товар из корзины пользователя.
-#     """
-#     async with pool.acquire() as conn:
-#         await conn.execute("""
-#             DELETE FROM cart WHERE user_id = $1 AND product_id = $2
-#         """, user_id, product_id)
