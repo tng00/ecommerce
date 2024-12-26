@@ -3,8 +3,7 @@
 {% block title %}Заказы{% endblock %}
 
 {% block content %}
-
-<!-- Форма для изменения статуса -->
+<link rel="stylesheet" href="/static/order.css">
 <form id="statusForm" style="display: none;">
     <div class="form-group">
         <label id="statusLabel">Редактировать статус заказа ID ...</label>
@@ -19,7 +18,6 @@
     </div>
 </form>
 
-<!-- Таблица товаров -->
 <table class="table">
     {% if user.is_supplier %}
         <h3> Сборочные задания </h3>
@@ -33,7 +31,6 @@
     <thead>
         <tr>
             {% if user.is_supplier %}
-            <!-- <th>ID</th> -->
             <th>Order ID</th>
             <th>Артикул</th>
             <th>Кол-во</th>
@@ -57,8 +54,6 @@
         {% for order in orders %}
         <tr>
             {% if user.is_supplier %}
-            <!-- <td>{{ order.id }}</td> -->
-            <!-- <td>{{ order.order_id }}</td> -->
             <td><a href="/order/{{order.order_id}}">{{ order.order_id }}</a></td>
             <td>{{ order.product_id }}</td>
             <td>{{ order.quantity }}</td>
@@ -66,7 +61,6 @@
             {% endif %}
 
             {% if user.is_admin or user.is_customer %}
-            <!-- <td>{{ order.id }}</td> -->
             <td><a href="/order/{{order.id}}">{{ order.id }}</a></td>
             {% if user.is_admin %}
             <td>{{ order.user_id }}</td>
@@ -91,17 +85,16 @@
     let currentOrderId = null;
 
     function editStatus(orderId) {
-        currentOrderId = orderId; // Сохраняем ID текущего заказа
+        currentOrderId = orderId;
         document.getElementById('statusLabel').innerText = `Редактировать статус заказа ID ${orderId}`;
-        document.getElementById('statusForm').style.display = 'block'; // Показываем форму
+        document.getElementById('statusForm').style.display = 'block';
     }
 
     document.getElementById('statusForm').addEventListener('submit', function (event) {
-        event.preventDefault(); // Предотвращаем стандартное поведение формы
+        event.preventDefault();
 
-        const newStatus = document.getElementById('newStatusSelect').value; // Получаем новое значение статуса
+        const newStatus = document.getElementById('newStatusSelect').value;
 
-        // Отправляем запрос на обновление статуса заказа
         fetch(`/order/update/${currentOrderId}`, {
             method: 'PUT',
             headers: {
@@ -112,7 +105,7 @@
             .then(response => {
                 if (response.ok) {
 
-                    location.reload(); // Перезагружаем страницу для обновления данных
+                    location.reload();
                 } else {
                     alert('Ошибка при обновлении статуса заказа.');
                 }
@@ -123,9 +116,6 @@
             });
     });
 
-
-
-    // Вызов функции при необходимости, например, по нажатию кнопки
     
 </script>
 

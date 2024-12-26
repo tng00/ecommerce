@@ -2,19 +2,17 @@
 
 {% block title %}Cart{% endblock %}
 {% block content %}
-
+<link rel="stylesheet" href="/static/cart.css">
 <body>
-    <div class="container mt-5">
-        <h1 class="mb-4">Корзина</h1>
+    <div class="container cart-container mt-5">
+        <h1 class="cart-title mb-4">Корзина</h1>
 
-        <!-- User Information -->
-        <div class="mb-3">
+        <div class="cart-user-info mb-3">
             <h4>Привет, {{ user['username'] }}</h4>
         </div>
 
-        <!-- Cart Table -->
-        <table class="table table-bordered">
-            <thead class="table-light">
+        <table class="table cart-table table-bordered">
+            <thead class="cart-table-head">
                 <tr>
                     <th>Продукт</th>
                     <th>Описание</th>
@@ -28,19 +26,19 @@
             <tbody>
                 {% if cart_items %}
                 {% for item in cart_items %}
-                <tr data-product-id="{{ item.product_id }}">
+                <tr class="cart-item" data-product-id="{{ item.product_id }}">
                     <td>{{ item.name }}</td>
                     <td>{{ item.description }}</td>
                     <td>{{ item.stock }}</td>
                     <td>{{ item.price }} ₽</td>
                     <td>
                         <input type="number" id="quantity-{{ item.product_id }}" value="{{ item.quantity }}" min="1"
-                            max="{{ item.stock }}" class="form-control"
+                            max="{{ item.stock }}" class="form-control cart-quantity"
                             onchange="updateCartItem({{ item.product_id }}, this.value)">
                     </td>
                     <td>{{ item.total_cost }} ₽</td>
                     <td>
-                        <button class="btn btn-sm btn-danger" onclick="removeCartItem({{ item.product_id }})">
+                        <button class="btn btn-sm btn-danger cart-remove-btn" onclick="removeCartItem({{ item.product_id }})">
                             Удалить
                         </button>
                     </td>
@@ -54,36 +52,31 @@
             </tbody>
         </table>
 
-        <!-- Total Cost -->
-        <div class="mt-4">
+        <div class="cart-total mt-4">
             <h5 id="total-cost">Общая стоимость: {{ total_cost }} ₽</h5>
         </div>
 
-        <!-- Address Input -->
         <div id="payment-options" class="mt-4">
             <h5>Введите адрес доставки:</h5>
             <div class="mb-3">
-                <input type="text" id="address" class="form-control" placeholder="Введите адрес" required>
+                <input type="text" id="address" class="form-control cart-address" placeholder="Введите адрес" required>
             </div>
 
-            <!-- Payment Options -->
             <h5>Выберите способ оплаты:</h5>
             <div class="d-flex">
-                <button onclick="submitOrder(true)" class="btn btn-primary me-2">Оплатить картой</button>
-                <button onclick="submitOrder(false)" class="btn btn-success">Оплатить через СБП</button>
+                <button onclick="submitOrder(true)" class="btn btn-primary cart-payment-btn me-2">Оплатить картой</button>
+                <button onclick="submitOrder(false)" class="btn btn-success cart-payment-btn">Оплатить через СБП</button>
             </div>
         </div>
 
-        <!-- Actions -->
 
         {% if last_order_id %}
         <div class="mt-4">
-            <a href="/order/{{ cart_items.last_order_id }}" class="btn btn-secondary">
+            <a href="/order/{{ cart_items.last_order_id }}" class="btn btn-secondary cart-back-btn">
                 Вернуться к заказу №{{ last_order_id }}
             </a>
         </div>
         {% endif %}
-
     </div>
 
     <script>
@@ -97,14 +90,11 @@
             const paymentOptions = document.getElementById('payment-options');
 
             if (totalCostElement) {
-                // Извлекаем сумму из текста (например, "Общая стоимость: 0 ₽")
                 const totalCost = parseInt(totalCostElement.textContent.replace(/[^\d]/g, ''), 10);
 
                 if (totalCost === 0) {
-                    // Скрыть блок с кнопками оплаты
                     paymentOptions.style.display = 'none';
                 } else {
-                    // Показать блок с кнопками оплаты
                     paymentOptions.style.display = 'block';
                 }
             }
@@ -123,7 +113,7 @@
                 if (response.ok) {
                     const result = await response.json();
                     alert('Корзина обновлена!');
-                    location.reload(); // Перезагрузка страницы для отображения изменений
+                    location.reload();
                 } else {
                     const error = await response.json();
                     alert(`Ошибка: ${error.detail}`);
@@ -142,13 +132,10 @@
                 });
 
                 if (response.ok) {
-                    // Удаляем строку из таблицы
                     document.querySelector(`tr[data-product-id="${productId}"]`).remove();
 
-                    // Получаем обновленные данные из ответа
                     const result = await response.json();
 
-                    // Обновляем общую стоимость
                     const totalCostElement = document.getElementById('total-cost');
                     if (totalCostElement) {
                         totalCostElement.textContent = `Общая стоимость: ${result.total_cost} ₽`;
@@ -174,7 +161,6 @@
                 return;
             }
 
-            // Пример данных корзины, замените на динамические значения, если требуется
             const cartItems = [
                 {% for item in cart_items %}
         {
@@ -205,7 +191,7 @@
             if (response.ok) {
                 const result = await response.json();
                 alert(`Заказ создан! ID заказа: ${result.order_id}`);
-                window.location.href = result.payment_url; // Переход к оплате
+                window.location.href = result.payment_url;
             } else {
                 const error = await response.json();
                 alert(`Ошибка: ${JSON.stringify(error.detail)}`);
