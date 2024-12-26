@@ -510,3 +510,89 @@ CREATE TRIGGER trg_update_product_rating
 AFTER INSERT ON reviews
 FOR EACH ROW
 EXECUTE FUNCTION update_product_rating();
+
+--Добавил вместо event
+CREATE OR REPLACE FUNCTION insert_user_event_rew()
+RETURNS TRIGGER AS $$
+BEGIN
+    INSERT INTO user_events (user_id, event_type, product_id, metadata)
+    VALUES (NEW.user_id, 'review', NEW.product_id, json_build_object('rating', NEW.rating, 'comment', NEW.comment));
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+
+CREATE TRIGGER after_insert_review
+BEFORE INSERT ON reviews
+FOR EACH ROW
+EXECUTE FUNCTION insert_user_event_rew();
+
+
+
+CREATE OR REPLACE FUNCTION insert_user_event_after_order()
+RETURNS TRIGGER AS $$
+DECLARE
+    order_user_id INTEGER;
+    order_total_amount NUMERIC;
+BEGIN
+    -- Извлечение user_id и total_amount из таблицы orders по order_id
+    SELECT user_id, total
+    INTO order_user_id, order_total_amount
+    FROM orders
+    WHERE id = NEW.order_id;
+
+
+    INSERT INTO user_events (user_id, event_type, product_id, quantity, metadata)
+    VALUES (
+        order_user_id,
+        'purchase',
+        NEW.product_id,
+        NEW.quantity,
+        json_build_object(
+            'total_amount', order_total_amount
+        )
+    );
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+
+
+CREATE TRIGGER after_insert_order
+AFTER INSERT ON order_items
+FOR EACH ROW
+EXECUTE FUNCTION insert_user_event_after_order();
+
+
+
+
+
+
+
+CREATE OR REPLACE FUNCTION after_update_cart()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- Вставка данных в таблицу user_events
+    INSERT INTO user_events (user_id, event_type, product_id, quantity)
+    VALUES (
+        NEW.user_id,
+        'cart_update',
+        NEW.product_id,
+        NEW.quantity,
+        
+    );
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+
+CREATE TRIGGER after_update_cart
+AFTER UPDATE ON cart
+FOR EACH ROW
+EXECUTE FUNCTION after_update_cart();
+
+
+CREATE TRIGGER after_update_cart_in
+AFTER INsert ON cart
+FOR EACH ROW
+EXECUTE FUNCTION after_update_cart();
