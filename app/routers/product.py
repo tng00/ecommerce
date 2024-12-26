@@ -94,6 +94,7 @@ async def get_product_detail(
     get_user: Annotated[dict, Depends(get_current_user)],
 ):
     try:
+        
         query = text("SELECT * FROM products WHERE id = :id")
         result = await db.execute(query, {"id": product_id})
         product = result.fetchone()
@@ -111,7 +112,25 @@ async def get_product_detail(
                 "description": product.description,
                 "image_url": product.image_url,
             }
+        
+
         ]
+        query1 = text("""INSERT INTO user_events (user_id, event_type, product_id, quantity)
+            VALUES (
+                :user_id,
+                'view',
+                :id,
+                0
+            );""")
+        await db.execute(
+                query1,
+                {
+                    "id": product_id,
+                    "user_id":get_user["id"],
+                },
+            )
+        await db.commit()
+ 
 
         # Получаем отзывы о продукте
         reviews_query = text("""
