@@ -18,8 +18,8 @@
                 <tr>
                     <th>Продукт</th>
                     <th>Описание</th>
-                    <th>Цена</th>
                     <th>Доступно</th>
+                    <th>Цена</th>
                     <th>Количество</th>
                     <th>Итоговая стоимость</th>
                     <th>Действия</th>
@@ -31,8 +31,8 @@
                 <tr data-product-id="{{ item.product_id }}">
                     <td>{{ item.name }}</td>
                     <td>{{ item.description }}</td>
-                    <td>{{ item.price }} ₽</td>
                     <td>{{ item.stock }}</td>
+                    <td>{{ item.price }} ₽</td>
                     <td>
                         <input type="number" id="quantity-{{ item.product_id }}" value="{{ item.quantity }}" min="1"
                             max="{{ item.stock }}" class="form-control"
@@ -76,6 +76,13 @@
 
         <!-- Actions -->
 
+        {% if last_order_id %}
+        <div class="mt-4">
+            <a href="/order/{{ cart_items.last_order_id }}" class="btn btn-secondary">
+                Вернуться к заказу №{{ last_order_id }}
+            </a>
+        </div>
+        {% endif %}
 
     </div>
 

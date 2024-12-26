@@ -6,7 +6,10 @@ DROP TABLE IF EXISTS products CASCADE;
 DROP TABLE IF EXISTS categories CASCADE;
 DROP TABLE IF EXISTS users CASCADE;
 DROP TABLE IF EXISTS cart CASCADE;
-
+DROP TABLE IF EXISTS user_events;
+DROP TABLE IF EXISTS user_preferences;
+DROP TABLE IF EXISTS notifications;
+DROP TABLE IF EXISTS alembic_version;
 
 CREATE TABLE "users" (
   "id" serial PRIMARY KEY,
@@ -86,6 +89,9 @@ CREATE TABLE cart (
     FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
 );
 
+ALTER TABLE cart ADD COLUMN last_order_id INT;
+
+ 
 -- CREATE TABLE user_events (
 --     id SERIAL PRIMARY KEY,
 --     user_id INT NOT NULL,                   -- Пользователь (или гость)

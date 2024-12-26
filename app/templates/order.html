@@ -34,18 +34,18 @@
         <tr>
             {% if user.is_supplier %}
             <!-- <th>ID</th> -->
-            <th>Номер заказа</th>
-            <th>Артикул товара</th>
-            <th>Количество</th>
+            <th>Order ID</th>
+            <th>Артикул</th>
+            <th>Кол-во</th>
             <th>Цена</th>
             {% endif %}
             {% if user.is_admin or user.is_customer %}
-            <th>Номер заказа</th>
+            <th>Order ID</th>
             {% if user.is_admin %}
-            <th>Номер пользователя</th>
-            <th>Номер платежа</th>
+            <th>User ID</th>
+            <th>Payment ID</th>
             {% endif %}
-            <th>Дата и время заказа</th>
+            <th>Дата заказа</th>
             <th>Адрес доставки</th>
             <th>Сумма</th>
             <th>Статус</th>
@@ -72,7 +72,7 @@
             <td>{{ order.user_id }}</td>
             <td>{{ order.payment_id }}</td>
             {% endif %}
-            <td>{{ order.order_date }}</td>
+            <td>{{ order.order_date.strftime('%Y-%m-%d %H:%M') }}</td>
             <td>{{ order.address }}</td>
             <td>{{ order.total }}</td>
             <td>{{ order.status }}</td>

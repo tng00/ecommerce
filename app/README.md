@@ -6,9 +6,6 @@
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-pip install itsdangerous
-pip install reportlab
-pip install jinja2
 # deactivate
 ```
 
@@ -33,8 +30,7 @@ CREATE DATABASE ecommerce OWNER ecommerce ENCODING 'UTF8';
 3. Установи резервную копию БД (при необходимости):
 
 ```sh
-pg_restore -U ecommerce -h localhost -d ecommerce -v ecommerce.dump
-# pg_restore -U ecommerce -h localhost -p 5433 -d ecommerce -v ecommerce.dump
+pg_restore -U ecommerce -h localhost -p 5433 -d ecommerce -v ecommerce.dump
 
 ```
 
