@@ -56,7 +56,7 @@ CREATE TABLE "orders" (
   "status" varchar NOT NULL DEFAULT 'processing',
   "total_amount" integer NOT NULL
 );
-ALTER TABLE orders ADD COLUMN check_id varchar UNIQUE;
+
 
 CREATE TABLE "order_items" (
   "id" serial PRIMARY KEY,
@@ -89,7 +89,6 @@ CREATE TABLE cart (
     FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
 );
 
-ALTER TABLE cart ADD COLUMN last_order_id INT;
 
  
 -- CREATE TABLE user_events (

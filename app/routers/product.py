@@ -143,9 +143,18 @@ async def get_product_detail(
             for review in reviews
         ]
 
+        categories_query = text("SELECT id, name, is_active FROM categories WHERE is_active = TRUE")
+        categories_result = await db.execute(categories_query)
+        categories = categories_result.fetchall()
+
+        categories_list = [
+            {"id": category.id, "name": category.name, "is_active": category.is_active}
+            for category in categories
+        ]   
+
         return templates.TemplateResponse(
             "product_page.html",
-            {"request": request, "products": product_detail, "reviews": reviews_list, "user": get_user},
+            {"request": request, "products": product_detail, "reviews": reviews_list, "user": get_user, "categories" : categories_list,},
         )
 
     except Exception as e:

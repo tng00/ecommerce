@@ -30,6 +30,7 @@ async def cart(
     request: Request,
     db: Annotated[AsyncSession, Depends(get_db)],
     current_user: Annotated[dict, Depends(get_current_user)],
+    reset: bool = False,  # Параметр для сброса корзины
 ):
     """
     Страница корзины пользователя.
@@ -40,19 +41,24 @@ async def cart(
         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
 
     try:
+        if reset:
+            # Сбрасываем корзину
+            delete_cart_query = text("DELETE FROM cart WHERE user_id = :user_id")
+            await db.execute(delete_cart_query, {"user_id": user_id})
+            await db.commit()
 
         # Сначала обновляем состояние корзины
         await update_cart_state(db, user_id)
 
         # SQL запрос для получения содержимого корзины
         query = text("""
-            SELECT 
-                c.product_id, 
-                p.name, 
-                p.description, 
-                p.price, 
-                p.stock, 
-                c.quantity, 
+            SELECT
+                c.product_id,
+                p.name,
+                p.description,
+                p.price,
+                p.stock,
+                c.quantity,
                 (p.price * c.quantity) AS total_cost
             FROM cart c
             JOIN products p ON c.product_id = p.id
@@ -65,11 +71,11 @@ async def cart(
         cart_list = [
             {
                 "product_id": item[0],  # product_id
-                "name": item[1],        # name
+                "name": item[1],         # name
                 "description": item[2], # description
                 "price": item[3],       # price
                 "stock": item[4],       # stock
-                "quantity": item[5],    # quantity
+                "quantity": item[5],   # quantity
                 "total_cost": item[6],  # total_cost
             }
             for item in cart_items
@@ -92,6 +98,7 @@ async def cart(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Произошла ошибка при загрузке корзины: {str(e)}"
         )
+
 
 async def calculate_total_cost(db: AsyncSession, user_id: int) -> float:
     """
@@ -179,14 +186,7 @@ async def remove_item_from_cart(
         await update_cart_state(db, user_id)
 
         # Рассчитываем общую стоимость корзины
-        total_query = text("""
-            SELECT SUM(p.price * c.quantity) AS total_cost
-            FROM cart c
-            JOIN products p ON c.product_id = p.id
-            WHERE c.user_id = :user_id
-        """)
-        result = await db.execute(total_query, {"user_id": user_id})
-        total_cost = result.scalar() or 0  # Если корзина пуста, вернуть 0
+        total_cost = await calculate_total_cost(db, user_id)
 
         return {"status": "success", "total_cost": total_cost}
 

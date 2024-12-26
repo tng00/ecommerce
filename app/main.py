@@ -1,12 +1,12 @@
-from fastapi import FastAPI, Depends
-from app.routers import category, product, auth, permission, order, review, cart, notifications, events, search
+from fastapi.exceptions import RequestValidationError
+from app.routers import category, product, auth, permission, order, review, cart, events, search
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from fastapi import Request, HTTPException
-from fastapi import FastAPI
-from fastapi import status
+from fastapi import FastAPI, status, Depends, Request, HTTPException
+
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.sessions import SessionMiddleware
 from app.routers.auth import get_current_user, get_current_user_optional
 from typing import Annotated
@@ -32,7 +32,20 @@ app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 templates = Jinja2Templates(directory="app/templates")
 
+@app.exception_handler(StarletteHTTPException)
+async def custom_http_exception_handler(request: Request, exc: StarletteHTTPException):
+    if exc.status_code == status.HTTP_404_NOT_FOUND:
+        # Логика редиректа на главную страницу
+        return RedirectResponse(url="/")
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": exc.detail},
+    )
 
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    # Логика для перенаправления на главную страницу при ошибке 422
+    return RedirectResponse(url="/")
 
 @app.exception_handler(HTTPException)
 async def http_exception_handler(
@@ -54,12 +67,14 @@ async def http_exception_handler(
                 },
             },
         )
+    elif exc.status_code == status.HTTP_404_NOT_FOUND:
+        # Редирект на главную страницу для 404 ошибки
+        return RedirectResponse(url="/")
     else:
         return JSONResponse(
             status_code=exc.status_code,
             content={"detail": exc.detail},
         )
-
 
 # @app.get("/", response_class=HTMLResponse)
 # async def main_page(

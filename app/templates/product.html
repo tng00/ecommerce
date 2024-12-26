@@ -285,7 +285,7 @@
         }
 
         try {
-            const response = await fetch(`/product/detail/${currentProductSlug}`, {
+            const response = await fetch(`/product/detail/${currentProductSlug}/`, {
                 method: 'PUT',
                 body: formData
             });
