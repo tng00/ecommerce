@@ -3,93 +3,47 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Categories{% endblock %}</title>
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-    <style>
-        .navbar-search-container {
-            margin-top: 10px; /* Отступ от верхнего меню */
-        }
-        .dropdown-menu {
-            margin-top: 0; /* Убирает зазор */
-        }
-
-        .navbar-search-container form {
-            display: flex;
-            align-items: center;
-            width: 100%; /* Занимает всю ширину */
-        }
-        .navbar-search-container input[type="text"] {
-            flex-grow: 1; /* Поле поиска растягивается на всю доступную ширину */
-            margin-right: 10px; /* Отступ между полем и кнопкой */
-        }
-
-        .navbar-nav .dropdown-menu {
-            top: 100%; /* Выравнивает меню прямо под элементом */
-        }
-        .navbar-search {
-            width: 100%; /* Расширена строка поиска */
-        }
-        .filter-section {
-            display: none; /* Скрываем секцию фильтров по умолчанию */
-            margin-top: 10px;
-        }
-        .filter-section.active {
-            display: block; /* Показываем секцию фильтров, если активна */
-        }
-        .row.custom-row > [class*="col-"] {
-        padding-left: 5px; /* Уменьшаем левый отступ */
-        padding-right: 5px; /* Уменьшаем правый отступ */
-    }
-    </style>
+    <title>{% block title %}Категории{% endblock %}</title>
+    <link rel="stylesheet" href="/static/base.css">
 </head>
 <body>
     <div class="container">
-        <nav class="navbar navbar-expand-lg navbar-light bg-light">
-            <a class="navbar-brand" href="/">Главная</a>
-            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav mr-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" href="/cart">Корзина</a>
-                    </li>
-                    <!-- Выпадающий список "Мои действия" -->
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="myActionsDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                            Мои действия
-                        </a>
-                        <div class="dropdown-menu" aria-labelledby="myActionsDropdown">
-                            <a class="dropdown-item" href="/order">Активные заказы</a>
-                            <a class="dropdown-item" href="/review">Добавить отзыв</a>
-                        </div>
-                    </li>
-                    {% if user.is_admin or user.is_supplier%}
-                    <!-- Выпадающий список "Администрирование" -->
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="adminDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                            Администрирование
-                        </a>
-                        <div class="dropdown-menu" aria-labelledby="adminDropdown">
-                            <a class="dropdown-item" href="/category">Управление категориями</a>
-                            <a class="dropdown-item" href="/product">Управление товарами</a>
-                        </div>
-                    </li>
-                    {% endif %}
-                </ul>
-
-                <!-- Кнопка выхода -->
+        <nav>
+            <div class="nav-left">
+                <a href="/" class="brand">Главная</a>
+            </div>
+            <div class="nav-middle">
+                <a href="/cart">Корзина</a>
+                <div class="dropdown">
+                    <button class="dropdown-btn">Мои действия</button>
+                    <div class="dropdown-menu">
+                        <a href="/order">Активные заказы</a>
+                        <a href="/review">Добавить отзыв</a>
+                    </div>
+                </div>
+                {% if user.is_admin or user.is_supplier %}
+                <div class="dropdown">
+                    <button class="dropdown-btn">Администрирование</button>
+                    <div class="dropdown-menu">
+                        <a href="/category">Управление категориями</a>
+                        <a href="/product">Управление товарами</a>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            <div class="nav-right">
                 {% if user.is_admin or user.is_supplier or user.is_customer %}
-                <form method="POST" action="/auth/logout" style="display: inline;">
-                    <button type="submit" class="btn btn-outline-secondary">Выход</button>
+                <form method="POST" action="/auth/logout">
+                    <button class="btn">Выход</button>
                 </form>
                 {% else %}
-                <form method="GET" action="/auth/login" style="display: inline;">
-                    <button type="submit" class="btn btn-outline-primary">Вход</button>
+                <form method="GET" action="/auth/login">
+                    <button class="btn">Вход</button>
                 </form>
                 {% endif %}
             </div>
         </nav>
+
 
 
         <!-- Поиск с проверкой -->
@@ -155,22 +109,49 @@
                         <button type="submit" class="btn btn-primary">Применить фильтры</button>
                     </div>
                 </div>
+
             </form>
+        
+            <div class="filters" id="filters">
+                <form method="get" action="/search/">
+                    <select name="category">
+                        <option value="">Выберите категорию</option>
+                        {% for category in categories %}
+                        <option value="{{ category.id }}" {% if category.id == category_id %}selected{% endif %}>
+                            {{ category.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <input 
+                        type="number" 
+                        step="0.1" 
+                        name="min_rating" 
+                        placeholder="Мин. рейтинг" 
+                        value="{{ min_rating or '' }}" 
+                        min="0" max="5">
+                    <select name="sort_by">
+                        <option value="name" {% if sort_by == 'name' %}selected{% endif %}>По названию</option>
+                        <option value="price" {% if sort_by == 'price' %}selected{% endif %}>По цене</option>
+                    </select>
+                    <select name="sort_order">
+                        <option value="asc" {% if sort_order == 'asc' %}selected{% endif %}>По возрастанию</option>
+                        <option value="desc" {% if sort_order == 'desc' %}selected{% endif %}>По убыванию</option>
+                    </select>
+                    <button type="submit" class="btn">Применить фильтры</button>
+                </form>
+            </div>
+            {% endif %}
         </div>
-        {% endif %}
-        <div class="mt-4">
+        
+        <div class="content">
             {% block content %}{% endblock %}
-        </div>
+        </div>        
     </div>
-    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
     <script>
-        // Логика для показа и скрытия фильтров
         document.getElementById('toggleFilters').addEventListener('click', function () {
-            const filters = document.getElementById('filters');
-            filters.classList.toggle('active');
+            document.getElementById('filters').classList.toggle('active');
         });
     </script>
 </body>
 </html>
+

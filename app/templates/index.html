@@ -3,9 +3,9 @@
 {% block title %}Главная страница{% endblock %}
 
 {% block content %}
-<div class="container">
+<link rel="stylesheet" href="/static/index.css">
+<div class="container_r">
 
-    <!-- Пагинация -->
     <nav aria-label="Pagination">
         <ul class="pagination justify-content-center">
             {% set total_pages = (total_products // page_size) + (1 if total_products % page_size else 0) %}
@@ -27,7 +27,6 @@
         </ul>
     </nav>
 
-    <!-- Список товаров -->
     <table class="table table-bordered">
         <thead>
             <tr>
@@ -87,7 +86,6 @@
         </tbody>
     </table>
 
-    <!-- Пагинация -->
     <nav aria-label="Pagination">
         <ul class="pagination justify-content-center">
             {% set total_pages = (total_products // page_size) + (1 if total_products % page_size else 0) %}
