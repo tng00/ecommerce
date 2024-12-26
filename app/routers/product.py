@@ -19,7 +19,7 @@ router = APIRouter(prefix="/product", tags=["product"])
 
 templates = Jinja2Templates(directory="app/templates")
 
-
+# unused catalog
 @router.get("/", response_class=HTMLResponse)
 async def get_active_products(
     request: Request,
@@ -143,43 +143,6 @@ async def get_product_detail(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
         )
 
-
-@router.get("/catalog", response_class=HTMLResponse)
-async def get_active_products(
-    request: Request,
-    db: Annotated[AsyncSession, Depends(get_db)],
-    get_user: Annotated[dict, Depends(get_current_user)],
-):
-    try:
-        query = text("SELECT * FROM get_active_products() ORDER BY id")
-        result = await db.execute(query)
-        products = result.fetchall()
-        products_list = [
-            {
-                "id": product.id,
-                "category_id": product.category_id,
-                "rating": product.rating,
-                "is_active": product.is_active,
-                "supplier_id": product.supplier_id,
-                "price": product.price,
-                "stock": product.stock,
-                "name": product.name,
-                "slug": product.slug,
-                "description": product.description,
-                "image_url": product.image_url,
-                "category_name": product.category_name,
-            }
-            for product in products
-        ]
-
-        return templates.TemplateResponse(
-            "catalog.html",
-            {"request": request, "products": products_list, "user": get_user},
-        )
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
-        )
 
 
 
