@@ -8,7 +8,9 @@ from app.backend.db_depends import get_db
 from sqlalchemy import select, insert, update, text
 
 from app.schemas import CreateOrder, OrderUpdate, CreateCheck
-from app.routers.auth import get_current_user
+from app.routers.auth import get_current_user 
+from app.routers.cart import calculate_total_cost
+
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import (
     HTMLResponse,
@@ -22,7 +24,13 @@ from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 import os
 
+from yookassa import Configuration, Payment
 import uuid
+
+idempotence_key = str(uuid.uuid4())
+Configuration.account_id = "1005331"
+Configuration.secret_key = "test_JE0B3RMdXgc_KdjzMj-aIdLdJW-cANg1KC2pgUR_xd0"#потом не забыть спрятать в env.
+
 
 
 CHECKS_DIR = "app/static/checks"
@@ -146,23 +154,23 @@ async def get_product_detail(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
         )
 
-@router.get("/check/{check_id}")
-async def get_check(check_id: str):
-    check_file_path = os.path.join(CHECKS_DIR, f"{check_id}.pdf")
-    if not os.path.exists(check_file_path):
-        raise HTTPException(status_code=404, detail="Check not found")
+# @router.get("/check/{check_id}")
+# async def get_check(check_id: str):
+#     check_file_path = os.path.join(CHECKS_DIR, f"{check_id}.pdf")
+#     if not os.path.exists(check_file_path):
+#         raise HTTPException(status_code=404, detail="Check not found")
 
-    return RedirectResponse(url=f"/static/checks/{check_id}.pdf")
-
-
+#     return RedirectResponse(url=f"/static/checks/{check_id}.pdf")
 
 
-@router.post("/create")
-async def create_order(
-    db: Annotated[AsyncSession, Depends(get_db)],
-    create_order: CreateOrder,
-    get_user: Annotated[dict, Depends(get_current_user)],
-):
+
+
+# @router.post("/create")
+# async def create_order(
+#     db: Annotated[AsyncSession, Depends(get_db)],
+#     create_order: CreateOrder,
+#     get_user: Annotated[dict, Depends(get_current_user)],
+# ):
 
     if get_user.get("is_customer") or get_user.get("is_admin"):
         user_id = get_user.get("id")
@@ -186,7 +194,7 @@ async def create_order(
         order_id = result.scalar()
         print(order_id)
         await db.commit()
-
+        
         for item in create_order.items:
             query = text(
                 """
@@ -207,52 +215,140 @@ async def create_order(
 
         check_id = str(uuid.uuid4())
         check_file_path = os.path.join(CHECKS_DIR, f"{check_id}.pdf")
-
-
-        c = canvas.Canvas(check_file_path, pagesize=letter)
-        width, height = letter
-
-        c.setFont("Helvetica-Bold", 16)
-        c.drawString(200, height - 50, "Receipt")
-        c.setFont("Helvetica", 12)
-
-        c.setFont("Helvetica-Bold", 12)
-        c.drawString(50, height - 120, "Item ID")
-        c.drawString(200, height - 120, "Quantity")
-        c.drawString(300, height - 120, "Price")
-        c.drawString(400, height - 120, "Total")
-
-        c.line(50, height - 125, 500, height - 125)
-
-        y_position = height - 140
-
-        c.setFont("Helvetica", 12)
-        for item in create_order.items:
-            total_price = item.quantity * item.price
-            c.drawString(50, y_position, str(item.product_id))
-            c.drawString(200, y_position, str(item.quantity))
-            c.drawString(300, y_position, f"${item.price:.2f}")
-            c.drawString(400, y_position, f"${total_price:.2f}")
-            y_position -= 40
-
-        c.line(50, y_position + 5, 500, y_position + 5)
-
         total_amount = sum(item.quantity * item.price for item in create_order.items)
-        c.setFont("Helvetica-Bold", 12)
-        c.drawString(300, y_position - 20, "Total Amount:")
-        c.drawString(400, y_position - 20, f"${total_amount:.2f}")
+        payment = Payment.create({
+                "amount": {
+                    "value": str(total_amount),
+                    "currency": "RUB"
+                },
+                "confirmation": {
+                    "type": "redirect",
+                    "return_url": "https://www.example.com/return_url"
+                },
+                "capture": True,
+                "description": "Заказ №" + str(order_id) 
+            }, uuid.uuid4())
 
-        c.showPage()
-        c.save()
+        #print(f"ID: {payment.id}")
+        #print(f"Status: {payment.status}")
+        #print(f"Paid: {payment.paid}")
+        #print(f"Amount: {payment.amount.value} {payment.amount.currency}")
+        #print(f"Confirmation Type: {payment.confirmation.type}")
+        #print(f"Confirmation URL: {payment.confirmation.confirmation_url}")
+        #print(f"Created At: {payment.created_at}")
+        #print(f"Description: {payment.description}")
+        #print(f"Metadata: {payment.metadata}")
+        #print(f"Recipient Account ID: {payment.recipient.account_id}")
+        #print(f"Recipient Gateway ID: {payment.recipient.gateway_id}")
+        #print(f"Refundable: {payment.refundable}")
+        #print(f"Test: {payment.test}")
+ 
+        return JSONResponse(content={"payment_url": payment.confirmation.confirmation_url})
+       
 
-        return {"check_url": f"/order/check/{check_id}"}
-    else:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You are not authorized to use this method",
-        )
 
 
+@router.post("/create")
+async def create_order(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    create_order: CreateOrder,
+    get_user: Annotated[dict, Depends(get_current_user)],
+):
+    try:
+        if get_user.get("is_customer") or get_user.get("is_admin"):
+            user_id = get_user.get("id")
+            current_timestamp = datetime.now()
+
+            # Рассчитываем актуальную общую стоимость корзины
+            total_cost = await calculate_total_cost(db, user_id)
+
+            query = text(
+                """
+                    SELECT create_order(:is_card, :is_sbp, :user_id, :order_date, :address, :total)
+                """
+            )
+            result = await db.execute(
+                query,
+                {
+                    "is_card": create_order.is_card,
+                    "is_sbp": create_order.is_sbp,
+                    "user_id": user_id,
+                    "order_date": current_timestamp,
+                    "address": create_order.address,
+                    "total": total_cost,
+                },
+            )
+            order_id = result.scalar()
+            print(order_id)
+            await db.commit()
+
+            for item in create_order.items:
+                query = text(
+                    """
+                    INSERT INTO order_items(order_id, product_id, quantity, price)
+                    VALUES (:order_id, :product_id, :quantity, :price)
+                """
+                )
+                await db.execute(
+                    query,
+                    {
+                        "order_id": order_id,
+                        "product_id": int(item.product_id),
+                        "quantity": item.quantity,
+                        "price": item.price,
+                    },
+                )
+                await db.commit()
+
+                # Уменьшаем количество товаров на складе
+                update_stock_query = text(
+                    """
+                    UPDATE products
+                    SET stock = stock - :quantity
+                    WHERE id = :product_id
+                    """
+                )
+                await db.execute(
+                    update_stock_query,
+                    {
+                        "product_id": int(item.product_id),
+                        "quantity": item.quantity,
+                    },
+                )
+                await db.commit()
+
+            # Очищаем корзину пользователя
+            delete_cart_query = text(
+                """
+                DELETE FROM cart WHERE user_id = :user_id
+                """
+            )
+            await db.execute(delete_cart_query, {"user_id": user_id})
+            await db.commit()
+
+            check_id = str(uuid.uuid4())
+            check_file_path = os.path.join(CHECKS_DIR, f"{check_id}.pdf")
+
+            total_amount = sum(item.quantity * item.price for item in create_order.items)
+            payment = Payment.create({
+                    "amount": {
+                        "value": str(total_amount),
+                        "currency": "RUB"
+                    },
+                    "confirmation": {
+                        "type": "redirect",
+                        "return_url": "https://www.example.com/return_url"
+                    },
+                    "capture": True,
+                    "description": "Заказ №" + str(order_id)
+                }, uuid.uuid4())
+
+            return JSONResponse(content={"payment_url": payment.confirmation.confirmation_url})
+        else:
+            return JSONResponse(content={"detail": "Permission denied"}, status_code=403)
+    except Exception as e:
+        await db.rollback()
+        return JSONResponse(content={"detail": str(e)}, status_code=500)
 
 
 @router.put("/update/{order_id}")

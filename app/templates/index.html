@@ -3,7 +3,143 @@
 {% block title %}Главная страница{% endblock %}
 
 {% block content %}
-<body>
-    <h1 id="welcome">Добро пожаловать!</h1>
-</body>
+<link rel="stylesheet" href="/static/index.css">
+<div class="container_r">
+
+    <nav aria-label="Pagination">
+        <ul class="pagination justify-content-center">
+            {% set total_pages = (total_products // page_size) + (1 if total_products % page_size else 0) %}
+            <li class="page-item {% if page <= 1 %}disabled{% endif %}">
+                <a class="page-link" href="?page=1&page_size={{ page_size }}&q={{ search_query }}&category={{ category_id }}&min_rating={{ min_rating }}&sort_by={{ sort_by }}&sort_order={{ sort_order }}">Первая</a>
+            </li>
+            <li class="page-item {% if page <= 1 %}disabled{% endif %}">
+                <a class="page-link" href="?page={{ page - 1 }}&page_size={{ page_size }}&q={{ search_query }}&category={{ category_id }}&min_rating={{ min_rating }}&sort_by={{ sort_by }}&sort_order={{ sort_order }}">Предыдущая</a>
+            </li>
+            <li class="page-item disabled">
+                <span class="page-link">Страница {{ page }} из {{ total_pages }}</span>
+            </li>
+            <li class="page-item {% if page >= total_pages %}disabled{% endif %}">
+                <a class="page-link" href="?page={{ page + 1 }}&page_size={{ page_size }}&q={{ search_query }}&category={{ category_id }}&min_rating={{ min_rating }}&sort_by={{ sort_by }}&sort_order={{ sort_order }}">Следующая</a>
+            </li>
+            <li class="page-item {% if page >= total_pages %}disabled{% endif %}">
+                <a class="page-link" href="?page={{ total_pages }}&page_size={{ page_size }}&q={{ search_query }}&category={{ category_id }}&min_rating={{ min_rating }}&sort_by={{ sort_by }}&sort_order={{ sort_order }}">Последняя</a>
+            </li>
+        </ul>
+    </nav>
+
+    <table class="table table-bordered">
+        <thead>
+            <tr>
+                <th>Фото</th>
+                <th>Название</th>
+                <th>Цена</th>
+                <th>Рейтинг</th>
+                <th>Описание</th>
+                <th>В наличии</th>
+                <th>К заказу</th>
+                <th>Действия</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for product in products %}
+            <tr>
+                <td>
+                    <img
+                        src="{{ product.image_url or '/static/images/default.jpg' }}"
+                        alt="{{ product.name }}"
+                        style="width: 100px; height: auto;"
+                    />
+                </td>
+                <td>
+                    <a href="/product/{{ product.id }}">{{ product.name }}</a>
+                </td>
+                <td>{{ product.price }} ₽</td>
+                <td>{{ product.rating | round(2) }} ⭐</td>
+                <td>{{ product.description }}</td>
+                <td>{{ product.stock }}</td>
+                <td>
+                    <input
+                        type="number"
+                        id="quantity_{{ product.id }}"
+                        name="quantity_{{ product.id }}"
+                        min="1"
+                        max="{{ product.stock }}"
+                        value="1"
+                        class="form-control"
+                    />
+                </td>
+                <td>
+                    <button
+                        class="btn btn-success"
+                        onclick="addToCart('{{ product.id }}', '{{ product.price }}')"
+                    >
+                        Добавить в корзину
+                    </button>
+                </td>
+            </tr>
+            {% endfor %}
+            {% if not products %}
+            <tr>
+                <td colspan="8" class="text-center">Товары не найдены</td>
+            </tr>
+            {% endif %}
+        </tbody>
+    </table>
+
+    <nav aria-label="Pagination">
+        <ul class="pagination justify-content-center">
+            {% set total_pages = (total_products // page_size) + (1 if total_products % page_size else 0) %}
+            <li class="page-item {% if page <= 1 %}disabled{% endif %}">
+                <a class="page-link" href="?page=1&page_size={{ page_size }}&q={{ search_query }}&category={{ category_id }}&min_rating={{ min_rating }}&sort_by={{ sort_by }}&sort_order={{ sort_order }}">Первая</a>
+            </li>
+            <li class="page-item {% if page <= 1 %}disabled{% endif %}">
+                <a class="page-link" href="?page={{ page - 1 }}&page_size={{ page_size }}&q={{ search_query }}&category={{ category_id }}&min_rating={{ min_rating }}&sort_by={{ sort_by }}&sort_order={{ sort_order }}">Предыдущая</a>
+            </li>
+            <li class="page-item disabled">
+                <span class="page-link">Страница {{ page }} из {{ total_pages }}</span>
+            </li>
+            <li class="page-item {% if page >= total_pages %}disabled{% endif %}">
+                <a class="page-link" href="?page={{ page + 1 }}&page_size={{ page_size }}&q={{ search_query }}&category={{ category_id }}&min_rating={{ min_rating }}&sort_by={{ sort_by }}&sort_order={{ sort_order }}">Следующая</a>
+            </li>
+            <li class="page-item {% if page >= total_pages %}disabled{% endif %}">
+                <a class="page-link" href="?page={{ total_pages }}&page_size={{ page_size }}&q={{ search_query }}&category={{ category_id }}&min_rating={{ min_rating }}&sort_by={{ sort_by }}&sort_order={{ sort_order }}">Последняя</a>
+            </li>
+        </ul>
+    </nav>
+
+</div>
+
+<script>
+    function addToCart(productId, price) {
+        const quantityInput = document.getElementById('quantity_' + productId);
+        const quantity = parseInt(quantityInput.value, 10);
+
+        if (quantity < 1) {
+            alert('Количество должно быть не менее 1.');
+            return;
+        }
+
+        fetch('/cart/add', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                product_id: productId,
+                quantity: quantity
+            }),
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Товар добавлен в корзину.');
+            } else {
+                alert(data.message || 'Не удалось добавить товар в корзину.');
+            }
+        })
+        .catch(error => {
+            console.error('Ошибка при добавлении товара в корзину:', error);
+        });
+    }
+</script>
 {% endblock %}

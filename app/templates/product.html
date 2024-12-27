@@ -3,15 +3,8 @@
 {% block title %}Товары{% endblock %}
 
 {% block content %}
-
-<style>
-    #productForm {
-        display: none;
-        /* Скрываем форму по умолчанию */
-    }
-</style>
-
-<div class="container mt-5">
+<link rel="stylesheet" href="/static/product.css">
+<div class="container_p mt-5">
     <h3>Создать новый товар</h3>
     <button id="toggleFormBtn" class="btn btn-secondary">Развернуть форму</button>
     <form id="productForm" enctype="multipart/form-data">
@@ -36,9 +29,7 @@
                 <select class="form-control" id="productCategory" name="category" required>
                     <option value="" disabled selected>-- Не выбран --</option>
                     {% for category in categories %}
-                        {% if category.is_active %}
-                            <option value="{{ category.id }}">{{ category.name }}</option>
-                        {% endif %}
+                        <option value="{{ category.id }}">{{ category.name }}</option>
                     {% endfor %}
                 </select>
             </div>
@@ -63,93 +54,210 @@
     <input type="file" id="newProductImage" accept=".jpg, .jpeg, .png">
     <label for="newProductStock">Остаток</label>
     <input type="number" id="newProductStock">
-    <!-- <label for="newProductCategory">Категория</label> -->
     <div class="form-group">
         <label for="productCategory">Категория</label>
         <select class="form-control" id="newProductCategory" name="category" required>
             <option value="" disabled selected>-- Не выбран --</option>
             {% for category in categories %}
-                {% if category.is_active %}
-                    <option value="{{ category.id }}">{{ category.name }}</option>
-                {% endif %}
+                <option value="{{ category.id }}">{{ category.name }}</option>
             {% endfor %}
         </select>
     </div>
-
-
     <button onclick="updateProduct()">Сохранить</button>
     <button onclick="closeEditModal()">Закрыть</button>
 </div>
 
-<h2>Все товары</h2>
-<table class="table">
-    <thead>
-        <tr>
-            <th>id</th>
-            <th>name</th>
-            <th>slug</th>
-            <th>category_id</th>
-            <th>category_name</th>
-            <th>price</th>
-            <th>rating</th>
-            <th>supplier_id</th>
-            <th>description</th>
-            <th>image_url</th>
-            <th>image</th>
-            <th>stock</th>
-            <th>actions</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for product in products %}
-        {% if product.is_active %} <!-- Проверяем, активна ли категория -->
-        <tr>
-            <td>{{ product.id }}</td>
-            <td><a href="/product/{{product.id}}">{{ product.name }}</a></td>
-            <td>{{ product.slug }}</td>
-            <td>{{ product.category_id }}</td>
-            <td>{{ product.category_name }}</td>
-            <td>{{ product.price }}</td>
-            <td>{{ product.rating | round(2)}}</td>
-            <td>{{ product.supplier_id }}</td>
-            <td>{{ product.description }}</td>
-            <td>{{ product.image_url }}</td>
-            <td>
-                <img src={{product.image_url}} style="width: 100px; height: auto;">
-            </td>
-            <td>{{ product.stock }}</td>
-            <td>
-                <button class="btn btn-warning btn-sm"
-                    onclick="editProduct('{{ product.id }}', '{{ product.slug }}', '{{ product.name }}', '{{ product.description }}', '{{ product.price }}', '{{ product.image_url }}', '{{ product.stock }}', '{{ product.category_id }}')">Edit</button>
-                <button class="btn btn-danger btn-sm" onclick="deleteProduct('{{ product.id }}')">Delete</button>
-            </td>
-        </tr>
-        {% endif %}
-        {% endfor %}
-    </tbody>
-</table>
+
+
+
+<div class="container mt-5">
+    <h2>Фильтры</h2>
+    <form method="get" action="/product/">
+        <div class="row">
+
+            <!-- Поле поиска -->
+            <div class="col-md-4">
+                <label for="searchQuery">Поиск</label>
+                <input type="text" id="searchQuery" name="q" class="form-control" placeholder="Введите запрос"
+                       value="{{ search_query }}">
+            </div>
+
+            <!-- Фильтр по категории -->
+            <div class="col-md-4">
+                <label for="categoryFilter">Категория</label>
+                <select name="category_id" id="categoryFilter" class="form-control">
+                    <option value="">Все категории</option>
+                    {% for category in categories %}
+                    <option value="{{ category.id }}" {% if category.id == category_id %}selected{% endif %}>
+                        {{ category.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Фильтр по минимальному рейтингу -->
+            <div class="col-md-4">
+                <label for="minRating">Минимальный рейтинг</label>
+                <input type="number" id="minRating" name="min_rating" class="form-control" step="0.1" min="0" max="5"
+                        value="{{ min_rating }}">
+            </div>
+        </div>
+
+        <div class="row mt-3">
+            <!-- Сортировка -->
+            <div class="col-md-4">
+                <label for="sortBy">Сортировать по</label>
+                <select name="sort_by" id="sortBy" class="form-control">
+                    <option value="name" {% if sort_by == "name" %}selected{% endif %}>Названию</option>
+                    <option value="price" {% if sort_by == "price" %}selected{% endif %}>Цене</option>
+                    <option value="stock" {% if sort_by == "stock" %}selected{% endif %}>Остатку</option>
+                </select>
+            </div>
+
+            <div class="col-md-4">
+                <label for="sortOrder">Порядок сортировки</label>
+                <select name="sort_order" id="sortOrder" class="form-control">
+                    <option value="asc" {% if sort_order == "asc" %}selected{% endif %}>По возрастанию</option>
+                    <option value="desc" {% if sort_order == "desc" %}selected{% endif %}>По убыванию</option>
+                </select>
+            </div>
+
+            <!-- Количество элементов на странице -->
+            <div class="col-md-4">
+                <label for="pageSize">Элементов на странице</label>
+                <select name="page_size" id="pageSize" class="form-control">
+                    <option value="5" {% if page_size == 5 %}selected{% endif %}>5</option>
+                    <option value="10" {% if page_size == 10 %}selected{% endif %}>10</option>
+                    <option value="20" {% if page_size == 20 %}selected{% endif %}>20</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="row mt-3">
+            <div class="col-md-12 text-right">
+                <button type="submit" class="btn btn-primary">Применить фильтры</button>
+            </div>
+        </div>
+    </form>
+
+    <nav aria-label="Pagination">
+        <ul class="pagination justify-content-center">
+            {% set total_pages = (total_products // page_size) + (1 if total_products % page_size else 0) %}
+            <li class="page-item {% if page <= 1 %}disabled{% endif %}">
+                <a class="page-link" href="?page=1&page_size={{ page_size }}&q={{ search_query }}&category={{ category_id }}&min_rating={{ min_rating }}&sort_by={{ sort_by }}&sort_order={{ sort_order }}">Первая</a>
+            </li>
+            <li class="page-item {% if page <= 1 %}disabled{% endif %}">
+                <a class="page-link" href="?page={{ page - 1 }}&page_size={{ page_size }}&q={{ search_query }}&category={{ category_id }}&min_rating={{ min_rating }}&sort_by={{ sort_by }}&sort_order={{ sort_order }}">Предыдущая</a>
+            </li>
+            <li class="page-item disabled">
+                <span class="page-link">Страница {{ page }} из {{ total_pages }}</span>
+            </li>
+            <li class="page-item {% if page >= total_pages %}disabled{% endif %}">
+                <a class="page-link" href="?page={{ page + 1 }}&page_size={{ page_size }}&q={{ search_query }}&category={{ category_id }}&min_rating={{ min_rating }}&sort_by={{ sort_by }}&sort_order={{ sort_order }}">Следующая</a>
+            </li>
+            <li class="page-item {% if page >= total_pages %}disabled{% endif %}">
+                <a class="page-link" href="?page={{ total_pages }}&page_size={{ page_size }}&q={{ search_query }}&category={{ category_id }}&min_rating={{ min_rating }}&sort_by={{ sort_by }}&sort_order={{ sort_order }}">Последняя</a>
+            </li>
+        </ul>
+    </nav>
+
+    <h2>Все товары</h2>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>id</th>
+                <th>name</th>
+                <th>slug</th>
+                <th>category_id</th>
+                <th>category_name</th>
+                <th>price</th>
+                <th>rating</th>
+                <th>supplier_id</th>
+                <th>description</th>
+                <th>image_url</th>
+                <th>image</th>
+                <th>stock</th>
+                <th>actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for product in products %}
+
+            <tr>
+                <td>{{ product.id }}</td>
+                <td><a href="/product/{{product.id}}">{{ product.name }}</a></td>
+                <td>{{ product.slug }}</td>
+                <td>{{ product.category_id }}</td>
+                <td>{{ product.category_name }}</td>
+                <td>{{ product.price }}</td>
+                <td>{{ product.rating | round(2)}}</td>
+                <td>{{ product.supplier_id }}</td>
+                <td>{{ product.description }}</td>
+                <td>{{ product.image_url }}</td>
+                <td>
+                    <img src={{product.image_url}} style="width: 100px; height: auto;">
+                </td>
+                <td>{{ product.stock }}</td>
+                <td>
+                    <button class="btn btn-warning btn-sm"
+                        onclick="editProduct('{{ product.id }}', '{{ product.slug | escape }}', '{{ product.name }}', '{{ product.description }}', '{{ product.price }}', '{{ product.image_url }}', '{{ product.stock }}', '{{ product.category_id }}')">Edit</button>
+                    <button class="btn btn-danger btn-sm" onclick="deleteProduct('{{ product.id }}')">Delete</button>
+                </td>
+            </tr>
+
+            
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <nav aria-label="Pagination">
+        <ul class="pagination justify-content-center">
+            {% set total_pages = (total_products // page_size) + (1 if total_products % page_size else 0) %}
+            <li class="page-item {% if page <= 1 %}disabled{% endif %}">
+                <a class="page-link" href="?page=1&page_size={{ page_size }}&q={{ search_query }}&category={{ category_id }}&min_rating={{ min_rating }}&sort_by={{ sort_by }}&sort_order={{ sort_order }}">Первая</a>
+            </li>
+            <li class="page-item {% if page <= 1 %}disabled{% endif %}">
+                <a class="page-link" href="?page={{ page - 1 }}&page_size={{ page_size }}&q={{ search_query }}&category={{ category_id }}&min_rating={{ min_rating }}&sort_by={{ sort_by }}&sort_order={{ sort_order }}">Предыдущая</a>
+            </li>
+            <li class="page-item disabled">
+                <span class="page-link">Страница {{ page }} из {{ total_pages }}</span>
+            </li>
+            <li class="page-item {% if page >= total_pages %}disabled{% endif %}">
+                <a class="page-link" href="?page={{ page + 1 }}&page_size={{ page_size }}&q={{ search_query }}&category={{ category_id }}&min_rating={{ min_rating }}&sort_by={{ sort_by }}&sort_order={{ sort_order }}">Следующая</a>
+            </li>
+            <li class="page-item {% if page >= total_pages %}disabled{% endif %}">
+                <a class="page-link" href="?page={{ total_pages }}&page_size={{ page_size }}&q={{ search_query }}&category={{ category_id }}&min_rating={{ min_rating }}&sort_by={{ sort_by }}&sort_order={{ sort_order }}">Последняя</a>
+            </li>
+        </ul>
+    </nav>
+</div>
+
 
 <script>
     let currentProductSlug = null;
 
     function editProduct(id, slug, newProductName, newProductDescription, newProductPrice, newProductImageUrl, newProductStock, newProductCategory) {
-        currentProductSlug = slug;
+        console.log('Slug:', slug); // Временный лог для проверки
+        currentProductSlug = slug; // Убедитесь, что slug передается правильно
         document.getElementById('newProductName').value = newProductName;
         document.getElementById('newProductDescription').value = newProductDescription;
         document.getElementById('newProductPrice').value = newProductPrice;
         document.getElementById('newProductImage').value = '';
         document.getElementById('newProductStock').value = newProductStock;
         document.getElementById('newProductCategory').value = newProductCategory;
+
         
-        // document.getElementById('parentId').value = parentId;
+
         document.getElementById('editProductTitle').innerText = `Редактирование товара ${newProductName}`;
-        document.getElementById('editProductModal').style.display = 'block'; // Показываем модальное окно
+        document.getElementById('editProductModal').style.display = 'block';
     }
+
 
     function closeEditModal() {
-        document.getElementById('editProductModal').style.display = 'none'; // Скрываем модальное окно
-    }
+        document.getElementById('editProductModal').style.display = 'none';
 
+
+    }
 
     async function updateProduct() {
         const name = document.getElementById('newProductName').value;
@@ -170,13 +278,13 @@
         }
 
         try {
-            const response = await fetch(`/product/detail/${currentProductSlug}`, {
+            const response = await fetch(`detail/${currentProductSlug}`, {
                 method: 'PUT',
                 body: formData
             });
 
             if (response.ok) {
-                location.reload(); // Перезагружаем страницу после успешного обновления
+                location.reload();
             } else {
                 const error = await response.json();
                 alert('Ошибка: ' + (error.detail || 'Неизвестная ошибка'));
@@ -190,27 +298,27 @@
     document.getElementById('toggleFormBtn').addEventListener('click', function () {
         const form = document.getElementById('productForm');
         if (form.style.display === 'none') {
-            form.style.display = 'block'; // Показываем форму
-            this.textContent = 'Свернуть форму'; // Меняем текст кнопки
+            form.style.display = 'block';
+            this.textContent = 'Свернуть форму';
         } else {
-            form.style.display = 'none'; // Скрываем форму
-            this.textContent = 'Развернуть форму'; // Меняем текст кнопки
+            form.style.display = 'none';
+            this.textContent = 'Развернуть форму';
         }
     });
 
     document.getElementById('productForm').addEventListener('submit', async function (event) {
-        event.preventDefault(); // Предотвращаем стандартное поведение формы
+        event.preventDefault();
 
-        const formData = new FormData(this); // Получаем данные формы
+        const formData = new FormData(this);
 
         try {
             const response = await fetch('/product/create', {
                 method: 'POST',
-                body: formData // Отправляем данные в формате FormData
+                body: formData
             });
 
             if (response.ok) {
-                location.reload(); // Перезагружаем страницу после успешного создания
+                location.reload();
             } else {
                 const error = await response.json();
                 alert('Ошибка: ' + (error.detail || 'Неизвестная ошибка'));
@@ -231,7 +339,7 @@
                 });
 
                 if (response.ok) {
-                    location.reload(); // Перезагружаем страницу после успешного удаления
+                    location.reload();
                 } else {
                     const error = await response.json();
                     alert('Ошибка: ' + (error.detail || 'Неизвестная ошибка'));
@@ -243,8 +351,5 @@
         }
     }
 </script>
-
-
-
 
 {% endblock %}

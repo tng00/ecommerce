@@ -1,3 +1,27 @@
+DROP TRIGGER IF EXISTS trg_reduce_stock ON order_items;
+DROP TRIGGER IF EXISTS trg_update_product_rating ON reviews;
+
+DROP FUNCTION IF EXISTS get_all_categories();
+DROP FUNCTION IF EXISTS create_category_function(VARCHAR, VARCHAR, INT);
+DROP FUNCTION IF EXISTS update_category_function(INT, VARCHAR, INT, VARCHAR);
+DROP FUNCTION IF EXISTS delete_category_function(INT);
+DROP FUNCTION IF EXISTS create_user_function(VARCHAR, VARCHAR, VARCHAR, VARCHAR, VARCHAR, BOOLEAN, BOOLEAN, BOOLEAN, BOOLEAN);
+DROP FUNCTION IF EXISTS get_active_products();
+DROP FUNCTION IF EXISTS create_product_function(VARCHAR, TEXT, INT, VARCHAR, INT, INT, VARCHAR, INT, DOUBLE PRECISION);
+DROP FUNCTION IF EXISTS get_products_by_category(VARCHAR);
+DROP FUNCTION IF EXISTS get_product_detail_by_slug(VARCHAR);
+DROP FUNCTION IF EXISTS update_product_function(VARCHAR, VARCHAR, TEXT, INT, VARCHAR, INT, INT, VARCHAR);
+DROP FUNCTION IF EXISTS insert_payment(BOOLEAN, BOOLEAN);
+DROP FUNCTION IF EXISTS insert_order(INTEGER, INTEGER, TIMESTAMP, VARCHAR, INTEGER, VARCHAR);
+DROP FUNCTION IF EXISTS create_order(BOOLEAN, BOOLEAN, INTEGER, TIMESTAMP, VARCHAR, INTEGER, VARCHAR);
+DROP FUNCTION IF EXISTS get_all_orders();
+DROP FUNCTION IF EXISTS get_active_reviews();
+DROP FUNCTION IF EXISTS create_review_function(INT, INT, INT, TEXT);
+DROP FUNCTION IF EXISTS reduce_stock();
+DROP FUNCTION IF EXISTS update_product_rating();
+
+
+
 CREATE OR REPLACE FUNCTION get_all_categories()
 RETURNS TABLE(id INT, is_active BOOLEAN, parent_id INT, name VARCHAR, slug VARCHAR) AS
 $$
@@ -486,3 +510,93 @@ CREATE TRIGGER trg_update_product_rating
 AFTER INSERT ON reviews
 FOR EACH ROW
 EXECUTE FUNCTION update_product_rating();
+
+--Добавил вместо event
+CREATE OR REPLACE FUNCTION insert_user_event_rew()
+RETURNS TRIGGER AS $$
+BEGIN
+    INSERT INTO user_events (user_id, event_type, product_id, metadata)
+    VALUES (NEW.user_id, 'review', NEW.product_id, json_build_object('rating', NEW.rating, 'comment', NEW.comment));
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+
+CREATE TRIGGER after_insert_review
+BEFORE INSERT ON reviews
+FOR EACH ROW
+EXECUTE FUNCTION insert_user_event_rew();
+
+
+
+CREATE OR REPLACE FUNCTION insert_user_event_after_order()
+RETURNS TRIGGER AS $$
+DECLARE
+    order_user_id INTEGER;
+    order_total_amount NUMERIC;
+BEGIN
+    -- Извлечение user_id и total_amount из таблицы orders по order_id
+    SELECT user_id, total
+    INTO order_user_id, order_total_amount
+    FROM orders
+    WHERE id = NEW.order_id;
+
+
+    INSERT INTO user_events (user_id, event_type, product_id, quantity, metadata)
+    VALUES (
+        order_user_id,
+        'purchase',
+        NEW.product_id,
+        NEW.quantity,
+        json_build_object(
+            'total_amount', order_total_amount
+        )
+    );
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+
+
+CREATE TRIGGER after_insert_order
+AFTER INSERT ON order_items
+FOR EACH ROW
+EXECUTE FUNCTION insert_user_event_after_order();
+
+
+
+
+
+
+
+CREATE OR REPLACE FUNCTION after_update_cart()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- Вставка данных в таблицу user_events
+    INSERT INTO user_events (user_id, event_type, product_id, quantity)
+    VALUES (
+        NEW.user_id,
+        'add_to_cart',
+        NEW.product_id,
+        NEW.quantity
+        
+    );
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+
+CREATE TRIGGER after_update_cart
+AFTER UPDATE ON cart
+FOR EACH ROW
+EXECUTE FUNCTION after_update_cart();
+
+
+CREATE TRIGGER after_update_cart_in
+AFTER INSERT ON cart
+FOR EACH ROW
+EXECUTE FUNCTION after_update_cart();
+
+
+
+

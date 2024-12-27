@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, status, HTTPException, Request
+from fastapi import APIRouter, Depends, status, HTTPException, Request, Query
 from typing import Annotated
 from slugify import slugify
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -7,10 +7,13 @@ from app.backend.db import engine
 from app.backend.db_depends import get_db
 from sqlalchemy import text
 
+from app.routers.search import fetch_products
 from app.schemas import CreateProduct
 from app.routers.auth import get_current_user
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
+from fastapi import File, UploadFile, Form
+from pathlib import Path
 
 
 router = APIRouter(prefix="/product", tags=["product"])
@@ -19,55 +22,64 @@ templates = Jinja2Templates(directory="app/templates")
 
 
 @router.get("/", response_class=HTMLResponse)
-async def get_active_products(
+async def let_admin_get_active_products(
     request: Request,
     db: Annotated[AsyncSession, Depends(get_db)],
     get_user: Annotated[dict, Depends(get_current_user)],
+    q: Annotated[str, Query()] = "",
+    category: Annotated[str, Query()] = "",
+    min_rating: Annotated[str, Query()] = "",
+    sort_by: Annotated[str, Query()] = "stock",
+    sort_order: Annotated[str, Query()] = "asc",
+    page: Annotated[int, Query(ge=1)] = 1,
+    page_size: Annotated[int, Query(ge=1, le=100)] = 5,
 ):
     try:
-        query = text("SELECT * FROM get_active_products() ORDER BY id")
-        result = await db.execute(query)
-        products = result.fetchall()
-        products_list = [
-            {
-                "id": product.id,
-                "category_id": product.category_id,
-                "category_name": product.category_name,
-                "rating": product.rating,
-                "is_active": product.is_active,
-                "supplier_id": product.supplier_id,
-                "price": product.price,
-                "stock": product.stock,
-                "name": product.name,
-                "slug": product.slug,
-                "description": product.description,
-                "image_url": product.image_url,
-            }
-            for product in products
-        ]
-        query = text("SELECT * FROM get_all_categories()")
-        result = await db.execute(query)
-        categories = result.fetchall()
-        categories_list = [
-            {
-                "id": category[0],  # id
-                "is_active": category[1],  # is_active
-                "parent_id": category[2],  # parent_id
-                "name": category[3],  # name
-                "slug": category[4],  # slug
-            }
-            for category in categories
-        ]
+        # Проверка прав доступа
+        if not (get_user.get("is_admin") or get_user.get("is_supplier")):
+            return templates.TemplateResponse("access_denied.html", {"request": request})
 
-        if get_user.get("is_admin") or get_user.get("is_supplier"):
-            return templates.TemplateResponse(
-                "product.html",
-                {"request": request, "products": products_list, "user": get_user, "categories": categories_list},
-            )
-        else:
-            return templates.TemplateResponse(
-                "access_denied.html", {"request": request}
-            )
+        # Преобразование параметров
+        category_id = int(category) if category.isdigit() else None
+        min_rating_value = (
+            float(min_rating) if min_rating and min_rating.replace(".", "", 1).isdigit() else None
+        )
+
+        # Получение данных через универсальную функцию
+        data = await fetch_products(
+            db,
+            q=q,
+            category_id=category_id,
+            min_rating_value=min_rating_value,
+            sort_by=sort_by,
+            sort_order=sort_order,
+            page=page,
+            page_size=page_size,
+        )
+        # Запрос для категорий
+        categories_query = "SELECT id, name FROM categories WHERE is_active = TRUE ORDER BY name"
+        categories_result = await db.execute(text(categories_query))
+        categories = [{"id": cat[0], "name": cat[1]} for cat in categories_result.fetchall()]
+
+
+        # Рендеринг страницы
+        return templates.TemplateResponse(
+            "product.html",
+            {
+                "request": request,
+                "products": data["products"],
+                "categories": data["categories"],
+                "total_products": data["total_products"],
+                "search_query": q,
+                "category_id": category_id,
+                "min_rating": min_rating_value,
+                "sort_by": sort_by,
+                "sort_order": sort_order,
+                "page": page,
+                "page_size": page_size,
+                "user": get_user,
+            },
+        )
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
@@ -82,6 +94,7 @@ async def get_product_detail(
     get_user: Annotated[dict, Depends(get_current_user)],
 ):
     try:
+        
         query = text("SELECT * FROM products WHERE id = :id")
         result = await db.execute(query, {"id": product_id})
         product = result.fetchone()
@@ -99,11 +112,68 @@ async def get_product_detail(
                 "description": product.description,
                 "image_url": product.image_url,
             }
+        
+
         ]
+        query1 = text("""INSERT INTO user_events (user_id, event_type, product_id, quantity)
+            VALUES (
+                :user_id,
+                'view',
+                :id,
+                0
+            );""")
+        await db.execute(
+                query1,
+                {
+                    "id": product_id,
+                    "user_id":get_user["id"],
+                },
+            )
+        await db.commit()
+ 
+
+        # Получаем отзывы о продукте
+        reviews_query = text("""
+            SELECT 
+                r.id,
+                r.product_id,
+                r.user_id,
+                r.rating,
+                r.comment,
+                p.name AS product_name,
+                u.first_name || ' ' || u.last_name AS user_name
+            FROM reviews r
+            JOIN products p ON r.product_id = p.id
+            JOIN users u ON r.user_id = u.id
+            WHERE p.is_active = TRUE AND r.product_id = :product_id
+        """)
+        reviews_result = await db.execute(reviews_query, {"product_id": product_id})
+        reviews = reviews_result.fetchall()
+
+        reviews_list = [
+            {
+                "id": review.id,
+                "product_id": review.product_id,
+                "user_id": review.user_id,
+                "user_name": review.user_name,  # Имя пользователя
+                "rating": review.rating,
+                "comment": review.comment,
+            }
+            for review in reviews
+        ]
+
+        categories_query = text("SELECT id, name, is_active FROM categories WHERE is_active = TRUE")
+        categories_result = await db.execute(categories_query)
+        categories = categories_result.fetchall()
+
+        categories_list = [
+            {"id": category.id, "name": category.name, "is_active": category.is_active}
+            for category in categories
+        ]   
 
         return templates.TemplateResponse(
             "product_page.html",
-            {"request": request, "products": product_detail, "user": get_user},
+            {"request": request, "products": product_detail, "reviews": reviews_list, "user": get_user, "categories" : categories_list,},
         )
 
     except Exception as e:
@@ -112,46 +182,7 @@ async def get_product_detail(
         )
 
 
-@router.get("/catalog", response_class=HTMLResponse)
-async def get_active_products(
-    request: Request,
-    db: Annotated[AsyncSession, Depends(get_db)],
-    get_user: Annotated[dict, Depends(get_current_user)],
-):
-    try:
-        query = text("SELECT * FROM get_active_products() ORDER BY id")
-        result = await db.execute(query)
-        products = result.fetchall()
-        products_list = [
-            {
-                "id": product.id,
-                "category_id": product.category_id,
-                "rating": product.rating,
-                "is_active": product.is_active,
-                "supplier_id": product.supplier_id,
-                "price": product.price,
-                "stock": product.stock,
-                "name": product.name,
-                "slug": product.slug,
-                "description": product.description,
-                "image_url": product.image_url,
-                "category_name": product.category_name,
-            }
-            for product in products
-        ]
 
-        return templates.TemplateResponse(
-            "catalog.html",
-            {"request": request, "products": products_list, "user": get_user},
-        )
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
-        )
-
-
-from fastapi import File, UploadFile, Form
-from pathlib import Path
 
 
 @router.post("/create")

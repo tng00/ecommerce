@@ -35,6 +35,9 @@ class CreateReview(BaseModel):
     rating: int
     comment: str
 
+class AddToCartRequest(BaseModel):
+    product_id: int
+    quantity: int
 
 class CreateCategory(BaseModel):
     name: str

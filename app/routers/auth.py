@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from jose import jwt, JWTError
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy import text
-
+from fastapi.responses import RedirectResponse
 
 
 SECRET_KEY = '21dbcdc373ff87232b38a5d01ea345426db104960e4ccf5e25da3a4eed608269'
@@ -225,6 +225,8 @@ async def create_access_token(username: str, user_id: int, is_admin: bool, is_su
     expires = datetime.now() + expires_delta
     encode.update({'exp': expires})
     return jwt.encode(encode, SECRET_KEY, algorithm=ALGORITHM)
+
+
 ######################################################################################################### 2
 
 
@@ -250,19 +252,25 @@ async def login(response: Response, db: Annotated[AsyncSession, Depends(get_db)]
 @router.get("/login")
 async def get_login_page(request: Request,
                          get_user: Annotated[dict, Depends(get_current_user_optional)]):
+    if get_user:  # Если пользователь авторизован
+        return RedirectResponse(url="/", status_code=302)  # Перенаправляем на главную
     return templates.TemplateResponse("login.html", {"request": request, "user": get_user})
 
 @router.get("/signup")
 async def get_login_page(request: Request,
                          get_user: Annotated[dict, Depends(get_current_user_optional)]):
+    if get_user:  # Если пользователь авторизован
+        return RedirectResponse(url="/", status_code=302)  # Перенаправляем на главную
     return templates.TemplateResponse("signup.html", {"request": request, "user": get_user})
 
-
 @router.post("/logout/")
-async def logout_user(response: Response):
-    response.delete_cookie(key="access_token")
-    return {'message': 'Пользователь успешно вышел из системы'}
-
+async def logout_user(request: Request):
+    request.session.clear()  # Очистить сессию    
+    # Удалить cookie авторизации
+    response = RedirectResponse(url="/auth/login", status_code=302)
+    response.delete_cookie("access_token")  # Удаляем access_token
+    
+    return response
 
 @router.get('/read_current_user')
 async def read_current_user(request: Request, user: dict = Depends(get_current_user)):

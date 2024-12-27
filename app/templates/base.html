@@ -3,46 +3,155 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Categories{% endblock %}</title>
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <title>{% block title %}Категории{% endblock %}</title>
+    <link rel="stylesheet" href="/static/base.css">
 </head>
 <body>
     <div class="container">
-        <nav class="navbar navbar-expand-lg navbar-light bg-light">
-            <a class="navbar-brand" href="/">Главная</a>
-            <div class="collapse navbar-collapse">
-                <ul class="navbar-nav mr-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" href="/product/catalog">Каталог товаров</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/order">Заказы</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/review">Отзывы</a>
-                    </li>
-                    {% if user.is_admin %}
-                    <li class="nav-item">
-                        <a class="nav-link" href="/category">Управление категориями</a>
-                    </li>
-                    {% endif %}
-                    {% if user.is_admin or user.is_supplier %}
-                    <li class="nav-item">
-                        <a class="nav-link" href="/product">Управление товарами</a>
-                    </li>
-                    {% endif %}
-                    <li class="nav-item">
-                        <a class="nav-link" href="/auth/login">Вход</a>
-                    </li>
-                </ul>
+        <nav>
+            <div class="nav-left">
+                <a href="/" class="brand">Главная</a>
+            </div>
+            <div class="nav-middle">
+                <a href="/cart">Корзина</a>
+                <div class="dropdown">
+                    <button class="dropdown-btn">Мои действия</button>
+                    <div class="dropdown-menu">
+                        <a href="/order">Активные заказы</a>
+                        <a href="/review">Добавить отзыв</a>
+                    </div>
+                </div>
+                {% if user.is_admin or user.is_supplier %}
+                <div class="dropdown">
+                    <button class="dropdown-btn">Администрирование</button>
+                    <div class="dropdown-menu">
+                        <a href="/category">Управление категориями</a>
+                        <a href="/product">Управление товарами</a>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            <div class="nav-right">
+                {% if user.is_admin or user.is_supplier or user.is_customer %}
+                <form method="POST" action="/auth/logout">
+                    <button class="btn">Выход</button>
+                </form>
+                {% else %}
+                <form method="GET" action="/auth/login">
+                    <button class="btn">Вход</button>
+                </form>
+                {% endif %}
             </div>
         </nav>
-        <div class="mt-4">
-            {% block content %}{% endblock %}
+
+
+
+        <!-- Поиск с проверкой -->
+        {% if request.path != '/cart/' and request.path != '/product/' %}
+        <!-- Форма поиска -->
+        <form method="get" action="/search/" class="mx-auto navbar-search d-flex">
+            <input
+                type="text"
+                name="q"
+                class="form-control mr-2"
+                placeholder="Поиск по описанию"
+                value="{{ search_query or '' }}"
+            />
+            <button class="btn btn-primary" type="submit">Найти</button>
+            <button
+                class="btn btn-outline-secondary ml-2"
+                type="button"
+                id="toggleFilters"
+            >
+                Все параметры
+            </button>
+        </form>
+
+        <!-- Секция фильтров -->
+        <div class="filter-section" id="filters">
+            <form method="get" action="/search/">
+                <div class="row custom-row">
+                    <div class="col-md-3">
+                        <select name="category" class="form-control">
+                            <option value="">Выберите категорию</option>
+                            {% for category in categories %}
+                            <option value="{{ category.id }}" {% if category.id == category_id %}selected{% endif %}>
+                                {{ category.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <input
+                            type="number"
+                            step="0.1"
+                            name="min_rating"
+                            class="form-control"
+                            placeholder="Мин. рейтинг"
+                            value="{{ min_rating or '' }}"
+                            min="0"
+                            max="5"
+                        />
+                    </div>
+                    <div class="col-md-3">
+                        <select name="sort_by" class="form-control">
+                            <option value="name" {% if sort_by == 'name' %}selected{% endif %}>Упорядочить по названию</option>
+                            <option value="price" {% if sort_by == 'price' %}selected{% endif %}>Упорядочить по цене</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <select name="sort_order" class="form-control">
+                            <option value="asc" {% if sort_order == 'asc' %}selected{% endif %}>По возрастанию</option>
+                            <option value="desc" {% if sort_order == 'desc' %}selected{% endif %}>По убыванию</option>
+                        </select>
+                    </div>
+                    <div class="col-md-12 text-right mt-3">
+                        <button type="submit" class="btn btn-primary">Применить фильтры</button>
+                    </div>
+                </div>
+
+            </form>
+        
+            <div class="filters" id="filters">
+                <form method="get" action="/search/">
+                    <select name="category">
+                        <option value="">Выберите категорию</option>
+                        {% for category in categories %}
+                        <option value="{{ category.id }}" {% if category.id == category_id %}selected{% endif %}>
+                            {{ category.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <input 
+                        type="number" 
+                        step="0.1" 
+                        name="min_rating" 
+                        placeholder="Мин. рейтинг" 
+                        value="{{ min_rating or '' }}" 
+                        min="0" max="5">
+                    <select name="sort_by">
+                        <option value="name" {% if sort_by == 'name' %}selected{% endif %}>По названию</option>
+                        <option value="price" {% if sort_by == 'price' %}selected{% endif %}>По цене</option>
+                    </select>
+                    <select name="sort_order">
+                        <option value="asc" {% if sort_order == 'asc' %}selected{% endif %}>По возрастанию</option>
+                        <option value="desc" {% if sort_order == 'desc' %}selected{% endif %}>По убыванию</option>
+                    </select>
+                    <button type="submit" class="btn">Применить фильтры</button>
+                </form>
+            </div>
+            {% endif %}
         </div>
+        
+        <div class="content">
+            {% block content %}{% endblock %}
+        </div>        
     </div>
-    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script>
+        document.getElementById('toggleFilters').addEventListener('click', function () {
+            document.getElementById('filters').classList.toggle('active');
+        });
+    </script>
 </body>
 </html>
+
