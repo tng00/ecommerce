@@ -1,5 +1,5 @@
 from fastapi.exceptions import RequestValidationError
-from app.routers import category, product, auth, permission, order, review, cart, events, search
+from app.routers import category, product, auth, permission, order, review, cart,search
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates

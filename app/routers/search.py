@@ -114,8 +114,8 @@ async def home(
 ):
     try:
                 # Проверка прав доступа
-        if not (get_user.get("is_admin") or get_user.get("is_supplier")):
-            return templates.TemplateResponse("access_denied.html", {"request": request})
+        #if not (get_user.get("is_admin") or get_user.get("is_supplier")):
+        #    return templates.TemplateResponse("access_denied.html", {"request": request})
 
         # Преобразование параметров
         category_id = int(category) if category.isdigit() else None
