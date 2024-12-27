@@ -91,16 +91,16 @@ CREATE TABLE cart (
 
 
  
--- CREATE TABLE user_events (
---     id SERIAL PRIMARY KEY,
---     user_id INT NOT NULL,                   -- Пользователь (или гость)
---     event_type VARCHAR(50) NOT NULL,       -- Тип события: 'view', 'add_to_cart', 'purchase', 'review'
---     product_id INT,                        -- ID товара (если применимо)
---     quantity INT DEFAULT 1,                -- Количество (для корзины и покупок)
---     event_time TIMESTAMP DEFAULT NOW(),    -- Время события
---     metadata JSONB,                        -- Дополнительные данные (например, фильтры поиска)
---     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
--- );
+CREATE TABLE user_events (
+    id SERIAL PRIMARY KEY,
+    user_id INT NOT NULL,                   -- Пользователь (или гость)
+    event_type VARCHAR(50) NOT NULL,       -- Тип события: 'view', 'add_to_cart', 'purchase', 'review'
+    product_id INT,                        -- ID товара (если применимо)
+    quantity INT DEFAULT 1,                -- Количество (для корзины и покупок)
+    event_time TIMESTAMP DEFAULT NOW(),    -- Время события
+    metadata JSONB,                        -- Дополнительные данные (например, фильтры поиска)
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
 
 
 -- CREATE TABLE notifications (

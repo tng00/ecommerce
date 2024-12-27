@@ -593,7 +593,7 @@ EXECUTE FUNCTION after_update_cart();
 
 
 CREATE TRIGGER after_update_cart_in
-AFTER INsert ON cart
+AFTER INSERT ON cart
 FOR EACH ROW
 EXECUTE FUNCTION after_update_cart();
 
