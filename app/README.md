@@ -53,6 +53,11 @@ sudo psql -U ecommerce -h localhost -p 5433 -d ecommerce
 uvicorn app.main:app --reload
 ```
 
+```
+sudo lsof -i :8000
+kill -9 
+```
+
 6. Данные для входа (логин, пароль):
 
 - Админ

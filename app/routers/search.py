@@ -12,6 +12,7 @@ from app.routers.category import handle_db_error
 router = APIRouter(prefix="/search", tags=["search"])
 templates = Jinja2Templates(directory="app/templates")
 
+
 async def fetch_products(
     db: AsyncSession,
     q: str = "",
@@ -75,6 +76,7 @@ async def fetch_products(
         "total_products": total_products,
     }
 
+
 def build_filter_conditions(q, category_id, min_rating_value):
     """
     Формирует условия фильтрации для SQL-запросов и параметры.
@@ -96,6 +98,7 @@ def build_filter_conditions(q, category_id, min_rating_value):
 
     return " AND ".join(filters), params
 
+
 @router.get("/", response_class=HTMLResponse)
 async def home(
     request: Request,
@@ -111,8 +114,8 @@ async def home(
 ):
     try:
                 # Проверка прав доступа
-        if not (get_user.get("is_admin") or get_user.get("is_supplier")):
-            return templates.TemplateResponse("access_denied.html", {"request": request})
+        #if not (get_user.get("is_admin") or get_user.get("is_supplier")):
+        #    return templates.TemplateResponse("access_denied.html", {"request": request})
 
         # Преобразование параметров
         category_id = int(category) if category.isdigit() else None
@@ -159,3 +162,4 @@ async def home(
 
     except Exception as e:
         await handle_db_error(e)
+

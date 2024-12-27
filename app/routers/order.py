@@ -9,7 +9,8 @@ from sqlalchemy import select, insert, update, text
 
 from app.schemas import CreateOrder, OrderUpdate, CreateCheck
 from app.routers.auth import get_current_user 
-#from app.routers.cart import update_cart, get_cart_quantities
+from app.routers.cart import calculate_total_cost
+
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import (
     HTMLResponse,
@@ -253,81 +254,102 @@ async def create_order(
     create_order: CreateOrder,
     get_user: Annotated[dict, Depends(get_current_user)],
 ):
+    try:
+        if get_user.get("is_customer") or get_user.get("is_admin"):
+            user_id = get_user.get("id")
+            current_timestamp = datetime.now()
 
-    if get_user.get("is_customer") or get_user.get("is_admin"):
-        user_id = get_user.get("id")
-        current_timestamp = datetime.now()
-        query = text(
-            """
-                SELECT create_order(:is_card, :is_sbp, :user_id, :order_date, :address, :total)
-            """
-        )
-        result = await db.execute(
-            query,
-            {
-                "is_card": create_order.is_card,
-                "is_sbp": create_order.is_sbp,
-                "user_id": user_id,
-                "order_date": current_timestamp,
-                "address": create_order.address,
-                "total": create_order.total,
-            },
-        )
-        order_id = result.scalar()
-        print(order_id)
-        await db.commit()
-        
-        for item in create_order.items:
+            # Рассчитываем актуальную общую стоимость корзины
+            total_cost = await calculate_total_cost(db, user_id)
+
             query = text(
                 """
-                INSERT INTO order_items(order_id, product_id, quantity, price)
-                VALUES (:order_id, :product_id, :quantity, :price)
-            """
+                    SELECT create_order(:is_card, :is_sbp, :user_id, :order_date, :address, :total)
+                """
             )
-            await db.execute(
+            result = await db.execute(
                 query,
                 {
-                    "order_id": order_id,
-                    "product_id": int(item.product_id),
-                    "quantity": item.quantity,
-                    "price": item.price,
+                    "is_card": create_order.is_card,
+                    "is_sbp": create_order.is_sbp,
+                    "user_id": user_id,
+                    "order_date": current_timestamp,
+                    "address": create_order.address,
+                    "total": total_cost,
                 },
             )
+            order_id = result.scalar()
+            print(order_id)
             await db.commit()
 
-        check_id = str(uuid.uuid4())
-        check_file_path = os.path.join(CHECKS_DIR, f"{check_id}.pdf")
+            for item in create_order.items:
+                query = text(
+                    """
+                    INSERT INTO order_items(order_id, product_id, quantity, price)
+                    VALUES (:order_id, :product_id, :quantity, :price)
+                """
+                )
+                await db.execute(
+                    query,
+                    {
+                        "order_id": order_id,
+                        "product_id": int(item.product_id),
+                        "quantity": item.quantity,
+                        "price": item.price,
+                    },
+                )
+                await db.commit()
 
-        total_amount = sum(item.quantity * item.price for item in create_order.items)
-        payment = Payment.create({
-                "amount": {
-                    "value": str(total_amount),
-                    "currency": "RUB"
-                },
-                "confirmation": {
-                    "type": "redirect",
-                    "return_url": "https://www.example.com/return_url"
-                },
-                "capture": True,
-                "description": "Заказ №" + str(order_id) 
-            }, uuid.uuid4())
+                # Уменьшаем количество товаров на складе
+                update_stock_query = text(
+                    """
+                    UPDATE products
+                    SET stock = stock - :quantity
+                    WHERE id = :product_id
+                    """
+                )
+                await db.execute(
+                    update_stock_query,
+                    {
+                        "product_id": int(item.product_id),
+                        "quantity": item.quantity,
+                    },
+                )
+                await db.commit()
 
-        #print(f"ID: {payment.id}")
-        #print(f"Status: {payment.status}")
-        #print(f"Paid: {payment.paid}")
-        #print(f"Amount: {payment.amount.value} {payment.amount.currency}")
-        #print(f"Confirmation Type: {payment.confirmation.type}")
-        #print(f"Confirmation URL: {payment.confirmation.confirmation_url}")
-        #print(f"Created At: {payment.created_at}")
-        #print(f"Description: {payment.description}")
-        #print(f"Metadata: {payment.metadata}")
-        #print(f"Recipient Account ID: {payment.recipient.account_id}")
-        #print(f"Recipient Gateway ID: {payment.recipient.gateway_id}")
-        #print(f"Refundable: {payment.refundable}")
-        #print(f"Test: {payment.test}")
- 
-        return JSONResponse(content={"payment_url": payment.confirmation.confirmation_url})
-       
+            # Очищаем корзину пользователя
+            delete_cart_query = text(
+                """
+                DELETE FROM cart WHERE user_id = :user_id
+                """
+            )
+            await db.execute(delete_cart_query, {"user_id": user_id})
+            await db.commit()
+
+            check_id = str(uuid.uuid4())
+            check_file_path = os.path.join(CHECKS_DIR, f"{check_id}.pdf")
+
+            total_amount = sum(item.quantity * item.price for item in create_order.items)
+            payment = Payment.create({
+                    "amount": {
+                        "value": str(total_amount),
+                        "currency": "RUB"
+                    },
+                    "confirmation": {
+                        "type": "redirect",
+                        "return_url": "https://www.example.com/return_url"
+                    },
+                    "capture": True,
+                    "description": "Заказ №" + str(order_id)
+                }, uuid.uuid4())
+
+            return JSONResponse(content={"payment_url": payment.confirmation.confirmation_url})
+        else:
+            return JSONResponse(content={"detail": "Permission denied"}, status_code=403)
+    except Exception as e:
+        await db.rollback()
+        return JSONResponse(content={"detail": str(e)}, status_code=500)
+
 
 @router.put("/update/{order_id}")
 async def update_order(
@@ -373,39 +395,3 @@ async def update_order(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You are not authorized to update this order",
         )
-
-
-
-
-
-# @router.post("/create")
-# async def create_order(
-#     db: Annotated[AsyncSession, Depends(get_db)],
-#     create_order: CreateOrder,
-#     get_user: Annotated[dict, Depends(get_current_user)],
-# ):
-#     user_id = validate_user_access(get_user)
-#     current_timestamp = datetime.now()
-
-#     try:
-#         # Шаг 1: Создаем заказ
-#         order_id = await create_order_in_db(db, user_id, create_order, current_timestamp)
-#         await db.commit()
-
-#         # Шаг 2: Добавляем товары в заказ
-#         await add_order_items(db, order_id, create_order.items)
-#         await db.commit()
-
-#         # Шаг 3: Генерируем check_id и обновляем заказ
-#         check_id = str(uuid.uuid4())
-#         await update_order_with_check_id(db, order_id, check_id)
-#         await db.commit()
-
-#         return {"order_id": order_id, "check_url": f"/order/check/{check_id}"}
-
-#     except Exception as e:
-#         await db.rollback()
-#         raise HTTPException(
-#             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-#             detail=str(e),
-#         )

@@ -29,9 +29,7 @@
                 <select class="form-control" id="productCategory" name="category" required>
                     <option value="" disabled selected>-- Не выбран --</option>
                     {% for category in categories %}
-                        {% if category.is_active %}
-                            <option value="{{ category.id }}">{{ category.name }}</option>
-                        {% endif %}
+                        <option value="{{ category.id }}">{{ category.name }}</option>
                     {% endfor %}
                 </select>
             </div>
@@ -61,14 +59,10 @@
         <select class="form-control" id="newProductCategory" name="category" required>
             <option value="" disabled selected>-- Не выбран --</option>
             {% for category in categories %}
-                {% if category.is_active %}
-                    <option value="{{ category.id }}">{{ category.name }}</option>
-                {% endif %}
+                <option value="{{ category.id }}">{{ category.name }}</option>
             {% endfor %}
         </select>
     </div>
-
-
     <button onclick="updateProduct()">Сохранить</button>
     <button onclick="closeEditModal()">Закрыть</button>
 </div>
@@ -206,7 +200,7 @@
                 <td>{{ product.stock }}</td>
                 <td>
                     <button class="btn btn-warning btn-sm"
-                        onclick="editProduct('{{ product.id }}', '{{ product.slug }}', '{{ product.name }}', '{{ product.description }}', '{{ product.price }}', '{{ product.image_url }}', '{{ product.stock }}', '{{ product.category_id }}')">Edit</button>
+                        onclick="editProduct('{{ product.id }}', '{{ product.slug | escape }}', '{{ product.name }}', '{{ product.description }}', '{{ product.price }}', '{{ product.image_url }}', '{{ product.stock }}', '{{ product.category_id }}')">Edit</button>
                     <button class="btn btn-danger btn-sm" onclick="deleteProduct('{{ product.id }}')">Delete</button>
                 </td>
             </tr>
@@ -243,22 +237,27 @@
     let currentProductSlug = null;
 
     function editProduct(id, slug, newProductName, newProductDescription, newProductPrice, newProductImageUrl, newProductStock, newProductCategory) {
-        currentProductSlug = slug;
+        console.log('Slug:', slug); // Временный лог для проверки
+        currentProductSlug = slug; // Убедитесь, что slug передается правильно
         document.getElementById('newProductName').value = newProductName;
         document.getElementById('newProductDescription').value = newProductDescription;
         document.getElementById('newProductPrice').value = newProductPrice;
         document.getElementById('newProductImage').value = '';
         document.getElementById('newProductStock').value = newProductStock;
         document.getElementById('newProductCategory').value = newProductCategory;
+
         
+
         document.getElementById('editProductTitle').innerText = `Редактирование товара ${newProductName}`;
         document.getElementById('editProductModal').style.display = 'block';
     }
 
+
     function closeEditModal() {
         document.getElementById('editProductModal').style.display = 'none';
-    }
 
+
+    }
 
     async function updateProduct() {
         const name = document.getElementById('newProductName').value;
@@ -279,7 +278,7 @@
         }
 
         try {
-            const response = await fetch(`/product/detail/${currentProductSlug}`, {
+            const response = await fetch(`detail/${currentProductSlug}`, {
                 method: 'PUT',
                 body: formData
             });
