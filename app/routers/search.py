@@ -115,9 +115,9 @@ redis = Redis(host='localhost', port=6379)
 
 FastAPICache.init(RedisBackend(redis), prefix="fastapi-cache")
 
-@app.get("/recommendations/{user_id}")
-@cache(expire=86400)
+
 @router.get("/", response_class=HTMLResponse)
+@cache(expire=86400)
 async def home(
     request: Request,
     db: Annotated[AsyncSession, Depends(get_db)],
