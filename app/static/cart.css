@@ -1,0 +1,128 @@
+.cart-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.cart-title {
+    font-size: 28px;
+    color: #333;
+    font-weight: 600;
+}
+
+.cart-user-info h4 {
+    font-size: 20px;
+    color: #6a0dad;
+}
+
+.cart-table {
+    width: 100%;
+    margin-top: 20px;
+    border-collapse: collapse;
+    background-color: #fff;
+}
+
+.cart-table th, .cart-table td {
+    padding: 12px;
+    text-align: left;
+    border: 1px solid #ddd;
+}
+
+.cart-table-head {
+    background-color: #f4f4f4;
+}
+
+.cart-table td {
+    font-size: 14px;
+    color: #555;
+}
+
+.cart-quantity {
+    width: 80px;
+    padding: 8px;
+    font-size: 14px;
+    border-radius: 5px;
+    border: 1px solid #ddd;
+}
+
+.cart-quantity:focus {
+    border-color: #6a0dad;
+    box-shadow: 0 0 5px rgba(255, 111, 0, 0.5);
+}
+
+.cart-remove-btn {
+    background-color: #e60000;
+    color: #fff;
+    padding: 8px 15px;
+    border: none;
+    border-radius: 5px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.cart-remove-btn:hover {
+    background-color: #b20000;
+}
+
+.cart-total {
+    font-size: 20px;
+    font-weight: 600;
+    color: #6a0dad;
+    margin-top: 20px;
+}
+
+.cart-address {
+    width: 100%;
+    padding: 12px;
+    font-size: 14px;
+    border-radius: 5px;
+    border: 1px solid #ddd;
+}
+
+.cart-address:focus {
+    border-color: #ff6f00;
+    box-shadow: 0 0 5px rgba(255, 111, 0, 0.5);
+}
+
+.cart-payment-btn {
+    padding: 12px 20px;
+    border-radius: 5px;
+    font-size: 16px;
+    transition: background-color 0.3s ease;
+}
+
+.cart-payment-btn.me-2 {
+    margin-right: 15px;
+}
+
+.cart-payment-btn.btn-primary {
+    background-color: #ff6f00;
+    color: #fff;
+}
+
+.cart-payment-btn.btn-primary:hover {
+    background-color: #e65c00;
+}
+
+.cart-payment-btn.btn-success {
+    background-color: #3cb371;
+    color: #fff;
+}
+
+.cart-payment-btn.btn-success:hover {
+    background-color: #2e8b57;
+}
+
+.cart-back-btn {
+    padding: 10px 20px;
+    font-size: 16px;
+    background-color: #6c757d;
+    color: #fff;
+    border-radius: 5px;
+    text-decoration: none;
+}
+
+.cart-back-btn:hover {
+    background-color: #5a6368;
+}

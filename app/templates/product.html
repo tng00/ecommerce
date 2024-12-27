@@ -3,15 +3,8 @@
 {% block title %}Товары{% endblock %}
 
 {% block content %}
-
-<style>
-    #productForm {
-        display: none;
-        /* Скрываем форму по умолчанию */
-    }
-</style>
-
-<div class="container mt-5">
+<link rel="stylesheet" href="/static/product.css">
+<div class="container_p mt-5">
     <h3>Создать новый товар</h3>
     <button id="toggleFormBtn" class="btn btn-secondary">Развернуть форму</button>
     <form id="productForm" enctype="multipart/form-data">
@@ -73,6 +66,8 @@
     <button onclick="updateProduct()">Сохранить</button>
     <button onclick="closeEditModal()">Закрыть</button>
 </div>
+
+
 
 
 <div class="container mt-5">
@@ -237,6 +232,7 @@
     </nav>
 </div>
 
+
 <script>
     let currentProductSlug = null;
 
@@ -250,19 +246,17 @@
         document.getElementById('newProductStock').value = newProductStock;
         document.getElementById('newProductCategory').value = newProductCategory;
 
+        
+
         document.getElementById('editProductTitle').innerText = `Редактирование товара ${newProductName}`;
-        document.getElementById('editProductModal').style.display = 'block'; // Показываем модальное окно
+        document.getElementById('editProductModal').style.display = 'block';
     }
 
 
     function closeEditModal() {
         document.getElementById('editProductModal').style.display = 'none';
-        document.getElementById('newProductName').value = '';
-        document.getElementById('newProductDescription').value = '';
-        document.getElementById('newProductPrice').value = '';
-        document.getElementById('newProductImage').value = '';
-        document.getElementById('newProductStock').value = '';
-        document.getElementById('newProductCategory').value = '';
+
+
     }
 
     async function updateProduct() {
@@ -290,7 +284,7 @@
             });
 
             if (response.ok) {
-                location.reload(); // Перезагружаем страницу после успешного обновления
+                location.reload();
             } else {
                 const error = await response.json();
                 alert('Ошибка: ' + (error.detail || 'Неизвестная ошибка'));
@@ -304,27 +298,27 @@
     document.getElementById('toggleFormBtn').addEventListener('click', function () {
         const form = document.getElementById('productForm');
         if (form.style.display === 'none') {
-            form.style.display = 'block'; // Показываем форму
-            this.textContent = 'Свернуть форму'; // Меняем текст кнопки
+            form.style.display = 'block';
+            this.textContent = 'Свернуть форму';
         } else {
-            form.style.display = 'none'; // Скрываем форму
-            this.textContent = 'Развернуть форму'; // Меняем текст кнопки
+            form.style.display = 'none';
+            this.textContent = 'Развернуть форму';
         }
     });
 
     document.getElementById('productForm').addEventListener('submit', async function (event) {
-        event.preventDefault(); // Предотвращаем стандартное поведение формы
+        event.preventDefault();
 
-        const formData = new FormData(this); // Получаем данные формы
+        const formData = new FormData(this);
 
         try {
             const response = await fetch('/product/create', {
                 method: 'POST',
-                body: formData // Отправляем данные в формате FormData
+                body: formData
             });
 
             if (response.ok) {
-                location.reload(); // Перезагружаем страницу после успешного создания
+                location.reload();
             } else {
                 const error = await response.json();
                 alert('Ошибка: ' + (error.detail || 'Неизвестная ошибка'));
@@ -345,7 +339,7 @@
                 });
 
                 if (response.ok) {
-                    location.reload(); // Перезагружаем страницу после успешного удаления
+                    location.reload();
                 } else {
                     const error = await response.json();
                     alert('Ошибка: ' + (error.detail || 'Неизвестная ошибка'));
