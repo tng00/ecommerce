@@ -576,9 +576,9 @@ BEGIN
     INSERT INTO user_events (user_id, event_type, product_id, quantity)
     VALUES (
         NEW.user_id,
-        'cart_update',
+        'add_to_cart',
         NEW.product_id,
-        NEW.quantity,
+        NEW.quantity
         
     );
     RETURN NEW;

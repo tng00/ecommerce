@@ -8,7 +8,7 @@ from typing import Annotated
 from app.backend.db_depends import get_db
 from app.routers.auth import get_current_user
 from app.routers.category import handle_db_error
-
+from mai_recsys.main import mlic
 router = APIRouter(prefix="/search", tags=["search"])
 templates = Jinja2Templates(directory="app/templates")
 
@@ -22,6 +22,7 @@ async def fetch_products(
     sort_order: str = "asc",
     page: int = 1,
     page_size: int = 5,
+    recomends: list = []
 ) -> dict:
     """
     Универсальная функция для получения списка продуктов с фильтрацией, сортировкой и пагинацией.
@@ -38,10 +39,16 @@ async def fetch_products(
         FROM products p
         LEFT JOIN categories c ON p.category_id = c.id
         WHERE {filters}
-        ORDER BY p.{sort_by if sort_by in ["name", "price", "stock"] else "name"} 
+        ORDER BY
+            CASE
+                WHEN p.id = ANY(:recomends) THEN 0
+                ELSE 1
+            END,
+            p.{sort_by if sort_by in ["name", "price", "stock"] else "name"}
         {sort_order.upper() if sort_order in ["asc", "desc"] else "ASC"}
         LIMIT :limit OFFSET :offset
     """
+    params.update({"recomends": recomends})
     result = await db.execute(text(sql_query), params)
     products = result.fetchall()
 
@@ -113,7 +120,7 @@ async def home(
     page_size: Annotated[int, Query(ge=1, le=100)] = 5
 ):
     try:
-                # Проверка прав доступа
+        # Проверка прав доступа
         #if not (get_user.get("is_admin") or get_user.get("is_supplier")):
         #    return templates.TemplateResponse("access_denied.html", {"request": request})
 
@@ -123,8 +130,10 @@ async def home(
             float(min_rating) if min_rating and min_rating.replace(".", "", 1).isdigit() else None
         )
 
-        
-                # Получение данных через универсальную функцию
+        # Получение рекомендаций
+        recomends = await mlic(get_user["id"])
+
+        # Получение данных через универсальную функцию
         data = await fetch_products(
             db,
             q=q,
@@ -134,12 +143,8 @@ async def home(
             sort_order=sort_order,
             page=page,
             page_size=page_size,
+            recomends=recomends
         )
-        
-        # Запрос для категорий
-        categories_query = "SELECT id, name FROM categories WHERE is_active = TRUE ORDER BY name"
-        categories_result = await db.execute(text(categories_query))
-        categories = [{"id": cat[0], "name": cat[1]} for cat in categories_result.fetchall()]
 
         # Возврат шаблона
         return templates.TemplateResponse(
@@ -162,4 +167,3 @@ async def home(
 
     except Exception as e:
         await handle_db_error(e)
-
