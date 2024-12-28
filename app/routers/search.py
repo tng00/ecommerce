@@ -9,6 +9,11 @@ from app.backend.db_depends import get_db
 from app.routers.auth import get_current_user
 from app.routers.category import handle_db_error
 from mai_recsys.main import mlic
+from fastapi_cache import FastAPICache
+from fastapi_cache.backends.redis import RedisBackend
+from redis import Redis
+from fastapi_cache.decorator import cache
+
 router = APIRouter(prefix="/search", tags=["search"])
 templates = Jinja2Templates(directory="app/templates")
 
@@ -106,7 +111,13 @@ def build_filter_conditions(q, category_id, min_rating_value):
     return " AND ".join(filters), params
 
 
+redis = Redis(host='localhost', port=6379)
+
+FastAPICache.init(RedisBackend(redis), prefix="fastapi-cache")
+
+
 @router.get("/", response_class=HTMLResponse)
+@cache(expire=86400)
 async def home(
     request: Request,
     db: Annotated[AsyncSession, Depends(get_db)],
